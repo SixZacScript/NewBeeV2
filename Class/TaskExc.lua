@@ -16,9 +16,15 @@ function TaskExecutor.new(bot)
 end
 
 function TaskExecutor:executeTask(task)
-    -- if not task or (task and task.status == "executing") then return false end
-    if not task  then return false end
-    task.status = "executing"
+    if not task then return false end
+
+    if task.status == "executing" then
+        return false
+    end
+
+    if task.status ~= "executing" then
+        task.status = "executing"
+    end
 
     local TaskTypes = shared.ModuleLoader:load("NewBeeV2/Class/Task.lua").TaskTypes
         

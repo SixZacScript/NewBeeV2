@@ -43,6 +43,10 @@ function Bot:update()
         self.stateManager:setState(self.stateManager.States.IDLE)
     end
 
+    if self.taskManager.currentTask and self.taskManager.currentTask.status == "completed" then
+        self.taskManager.currentTask = nil
+    end
+
     if self.taskManager.currentTask then
         -- print(self.taskManager.currentTask.status)
         local isNotCompleted =self.taskManager.currentTask.status ~= "completed"
