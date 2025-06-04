@@ -86,33 +86,41 @@ function Bot:updateState()
         end
     end
 end
+    -- if shared.hiveHelper and shared.hiveHelper:isPollenFull() then
+    --         self:convertPollen()
+    --         while self.state.converting and self.state.autoFarm do
+    --             task.wait(0.1)
+    --         end
+    --     end
+        
+    --     if self.state.autoFarm then
+    --         if not shared.character:isPlayerInField(shared.main.currentField) then
+    --             self:returnToField(function()
+    --                 self:farmLoop()
+    --             end)
+    --         else
+    --             self:farmLoop()
+    --         end
+    --     end
 function Bot:startFarmingLoop(locations)
     repeat task.wait() until self.Hive.hive
-    if not self.player:isPlayerInField(self.Field:getField()) then
-        local data = {
-            position = self.Field:getFieldPosition(),
-            moveType = "tween",
-        }
-        self.taskManager:addTask(self.TaskTypes.MOVE_TO, data)
+    
+
+    while self.isRunning do
+        local inField = self.player:isPlayerInField()
+        local isConverting = self.stateManager:isConverting()
+        
+        if self.player:isCapacityFull() and not isConverting then
+            self:convertPollen()
+        end
+
+        if not inField then self:returnToField() end
+        if inField then self:randomWalkInField() end
+            
+        task.wait()
     end
-
-    task.spawn(function()
-        repeat
-            local isConverting = self.stateManager:isConverting()
-            print(isConverting)
-            if self.taskManager:getTaskCount() == 0 then
-                if self.player:isCapacityFull() and not isConverting then
-                    self:convertPollen()
-                elseif not isConverting then
-                    self:randomWalkInField()
-                end
-                
-            end
-            task.wait()
-        until not self.isRunning
-    end)
-
   
+
 end
 
 
@@ -230,6 +238,15 @@ end
 
 function Bot:attackTarget(target)
     return self:addTask(TaskManager.TaskTypes.ATTACK_TARGET, {target = target})
+end
+function Bot:returnToField()
+    if not self.player:isPlayerInField(self.Field:getField()) then
+        local data = {
+            position = self.Field:getFieldPosition(),
+            moveType = "tween",
+        }
+        return self:addTask(TaskManager.TaskTypes.MOVE_TO, data)
+    end
 end
 
 function Bot:wait(duration)
