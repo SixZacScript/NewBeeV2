@@ -46,6 +46,7 @@ end
 function TaskExecutor:executeConvertTask(tk)
     local player = self.bot.player
     local hive = self.bot.Hive
+    local stateManager = self.bot.stateManager
     local hivePosition = hive:getHivePosition()
 
     player:tweenTo(hivePosition, 1, function()
@@ -61,6 +62,7 @@ function TaskExecutor:executeConvertTask(tk)
         -- print("completed convert")
         task.wait(5)
         tk.status = "completed"
+        stateManager:setState(stateManager.States.IDLE)
     end)
 
     return tk.status == "completed" 
