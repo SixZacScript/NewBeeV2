@@ -52,17 +52,21 @@ function TaskExecutor:executeConvertTask(tk)
     player:tweenTo(hivePosition, 1, function()
         task.wait(1)
         Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
-        -- print("converting")
+
         local startTime = tick()
-        local timeoutDuration = 180 
+        local timeoutDuration = 180
         while player.Pollen > 0 and tk.status ~= "canceled" do
             task.wait(0.2)
             if tick() - startTime >= timeoutDuration then break end
         end
-        -- print("completed convert")
+
         task.wait(5)
-        tk.status = "completed"
-        stateManager:setState(stateManager.States.IDLE)
+
+        local fieldPos = self.bot.Field:getFieldPosition()
+        player:tweenTo(fieldPos, 1, function()
+            tk.status = "completed"
+            stateManager:setState(stateManager.States.IDLE)
+        end)
     end)
 
     return tk.status == "completed" 
