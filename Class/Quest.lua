@@ -12,6 +12,7 @@ function QuestHelper.new()
     self.playerStats = shared.helper.Player:getPlayerStats()
     self.activeQuest = {}
     self.PollenData = {}
+    self.questHistory = {}
     self.currentQuest = nil
     self.currentTask = nil
     self.isCompleted = false
@@ -239,7 +240,9 @@ function QuestHelper:selectCurrentQuestAndTask(currentQuestName)
             self.isCompleted = true
         end
         self:updateDisplay()
+        self.questHistory[self.currentQuest.Name] = self.currentQuest.Tasks
 
+        writefile("questHistory.json", HttpService:JSONEncode(self.questHistory))
         return selectedQuest
     end, debug.traceback)
 
@@ -305,49 +308,79 @@ function QuestHelper:startCollectionRateUpdater()
 end
 
 
+function QuestHelper:printTable(tbl, title, indent)
+    title = title or "📋 Table Output"
+    print("========== " .. title .. " ==========")
 
+    local function getMaxWidth(tbl)
+        local maxKey, maxValue = 0, 0
+        for k, v in pairs(tbl) do
+            maxKey = math.max(maxKey, tostring(k):len())
+            maxValue = math.max(maxValue, tostring(v):len())
+        end
+        return maxKey, maxValue
+    end
+
+    local keyWidth, valueWidth = getMaxWidth(tbl)
+    local formatStr = string.format("%%-%ds | %%-%ds", keyWidth, valueWidth)
+
+    print(string.format(formatStr, "Key", "Value"))
+    print(string.rep("-", keyWidth + valueWidth + 3))
+
+    for k, v in pairs(tbl) do
+        print(string.format(formatStr, tostring(k), tostring(v)))
+    end
+
+    print(string.rep("=", keyWidth + valueWidth + 3))
+end
 
 function QuestHelper:onServerGiveEvent(eventType, data)
     local success, result = xpcall(function()
-        if not  self.PollenData[eventType] then
-             self.PollenData[eventType] = {data}
-        else
-            table.insert(self.PollenData[eventType], data)
-        end
+        -- Store pollen data
+        self.PollenData[eventType] = self.PollenData[eventType] or {}
+        table.insert(self.PollenData[eventType], data)
 
-        if eventType == 'Give' and data.C == "Honey" then
+        -- Handle Honey conversion
+        if eventType == "Give" and data.C == "Honey" then
             self.collectedStatics.totalConvertHoney += data.A
             return
         end
 
-        if eventType ~= "Give" or not self.currentQuest then return end
-        
-        local allTasks = self.currentQuest.Tasks
-        local PollenRealAmount = data.R
+        -- Only process Pollen events for the current quest
+        if eventType ~= "Give" or not self.currentQuest or data.C ~= "Pollen" then return end
+
+        local PollenRealAmount = data.R or data.A
         local PollenZone = data.Z
         local PollenColor = data.L
-        
-        -- Early validation
-        if typeof(PollenRealAmount) ~= "number" then return end
-        self.collectedStatics.totalCollectedPollen += PollenRealAmount
 
-        -- Update matching tasks and check completion in single loop
+        if typeof(PollenRealAmount) ~= "number" then return end
+
+        local allTasks = self.currentQuest.Tasks
         local allCompleted = true
+
         for _, taskData in pairs(allTasks) do
-            -- Update progress for matching tasks
-            if PollenZone == taskData.Zone or PollenColor == taskData.Color then
-                taskData.progress[2] = math.min(taskData.progress[2] + PollenRealAmount, taskData.progress[3])
-                taskData.progress[1] = math.min(taskData.progress[2] / taskData.progress[3], 1.0)
+            if taskData.Type == "Collect Pollen" then
+                local matchZone = taskData.Zone and PollenZone == taskData.Zone
+                local matchColor = taskData.Color and PollenColor == taskData.Color
+                local noSpecifics = not taskData.Zone and not taskData.Color
+
+                if matchZone or matchColor or noSpecifics then
+                    taskData.progress[2] = math.min(taskData.progress[2] + PollenRealAmount, taskData.progress[3])
+                    taskData.progress[1] = math.min(taskData.progress[2] / taskData.progress[3], 1.0)
+                end
             end
-            
-            -- Check if this task is incomplete
-            if taskData.progress[1] < 1 then allCompleted = false end
+
+            if taskData.progress[1] < 1 then
+                allCompleted = false
+            end
         end
 
-        -- Handle completion logic
+        -- Update quest completion status
         self.isCompleted = allCompleted
+
+        -- Move to next task if current is done
         if self.currentTask and self.currentTask.progress[1] >= 1 and not self.isCompleted then
-            print("current task completed find next quest")
+            print("current task completed, finding next quest")
             local newTask = self:getNextAvailableTask()
             if newTask then
                 self.currentTask = newTask
@@ -363,8 +396,9 @@ function QuestHelper:onServerGiveEvent(eventType, data)
     if not success then
         warn("Error in onServerGiveEvent:\n" .. result)
     end
-    -- writefile("PollenData.json",HttpService:JSONEncode(self.PollenData))
 end
+
+
 function QuestHelper:selectPreviousTask()
     if not self.currentQuest or not self.currentQuest.Tasks or not self.currentTask then return end
 

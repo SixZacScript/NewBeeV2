@@ -100,7 +100,8 @@ function Token.new(id, name, instance, priority, isSkill, position)
         spawnTime = tick(),
         maxTry = CONFIG.TOKEN.MAX_RETRY_ATTEMPTS,
         currentTry = 0,
-        _connections = {}, -- Track all connections for proper cleanup
+        tokenField = shared.Bot.currentField or nil,
+        _connections = {},
         _cleanupScheduled = false,
     }, Token)
 
@@ -191,65 +192,7 @@ function Token:isValid()
     return self.instance and self.instance.Parent and not self.touched
 end
 
--- Enhanced RegionManager
-local RegionManager = {}
-RegionManager.__index = RegionManager
 
-function RegionManager.new()
-    return setmetatable({
-        _cachedRegions = {},
-        _cacheTimeout = 5, -- seconds
-    }, RegionManager)
-end
-
-function RegionManager:getFieldRegion(field)
-    if not field then return nil end
-    
-    local fieldId = tostring(field)
-    local cached = self._cachedRegions[fieldId]
-    
-    if cached and tick() - cached.timestamp < self._cacheTimeout then
-        return cached.region
-    end
-    
-    local center = field.Position
-    local size = Vector3.new(
-        field.Size.X + CONFIG.FIELD.EXPAND_BY * 2,
-        CONFIG.FIELD.HEIGHT,
-        field.Size.Z + CONFIG.FIELD.EXPAND_BY * 2
-    )
-    local halfSize = size / 2
-    local min = center - halfSize
-    local max = center + halfSize
-    local region = Region3.new(min, max)
-    
-    self._cachedRegions[fieldId] = {
-        region = region,
-        timestamp = tick()
-    }
-    
-    return region
-end
-
-function RegionManager:isPositionInBounds(position, field)
-    if not CONFIG.FIELD.CHECK_BOUNDS or not field then return true end
-    
-    local region = self:getFieldRegion(field)
-    if not region then return false end
-    
-    local min = region.CFrame.Position - region.Size / 2
-    local max = region.CFrame.Position + region.Size / 2
-    
-    return (
-        position.X >= min.X and position.X <= max.X and
-        position.Z >= min.Z and position.Z <= max.Z
-    )
-
-end
-
-function RegionManager:cleanup()
-    self._cachedRegions = {}
-end
 
 -- Enhanced TokenHelper with memory leak prevention
 local TokenHelper = {}
@@ -262,7 +205,6 @@ function TokenHelper.new(bot)
     self.useSimpleDistanceLogic = false
     self.activeTokens = {}
     self.collectedTokenData = {}
-    self.regionManager = RegionManager.new()
     self._connections = {}
     self._lastCleanup = tick()
     self._updateConnection = nil
@@ -472,6 +414,22 @@ function TokenHelper:_handleTokenCollect(tokenParams)
     self:removeToken(serverID)
 end
 
+
+function TokenHelper:isPositionInBounds(position, field)
+    if not CONFIG.FIELD.CHECK_BOUNDS or not field then return true end
+
+    local size = field.Size
+    local center = field.Position
+
+    local min = center - size / 2
+    local max = center + size / 2
+
+    return (
+        position.X >= min.X and position.X <= max.X and
+        position.Z >= min.Z and position.Z <= max.Z
+    )
+end
+
 function TokenHelper:_updateCollectedStats(token)
     local tokenID = token.id
     local tokenName = token.name
@@ -550,7 +508,7 @@ end
 function TokenHelper:isInBounds(position)
     local field = shared.Bot.currentField
     if not field then return false end
-    return self.regionManager:isPositionInBounds(position, field)
+    return self:isPositionInBounds(position, field)
 end
 
 function TokenHelper:extractAssetID(url)
@@ -605,12 +563,6 @@ function TokenHelper:destroy()
         tokenData:cleanup()
     end
     self.activeTokens = {}
-    
-    -- Clean up managers
-    if self.regionManager then
-        self.regionManager:cleanup()
-        self.regionManager = nil
-    end
     
     -- Clear data
     self.collectedTokenData = nil

@@ -1,5 +1,6 @@
 local HttpService = game:GetService("HttpService")
 local Rep = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local PlayerHelper = {}
 PlayerHelper.__index = PlayerHelper
 
@@ -24,24 +25,19 @@ function PlayerHelper.new()
     self._characterConnection = self.player.CharacterAdded:Connect(function()
         self:_updateCharacter()
     end)
-    
-    self.CoreStats.Pollen.Changed:Connect(function(val)
-        self.Pollen = val
-    end)
 
-    self.CoreStats.Capacity.Changed:Connect(function(val)
-        self.Capacity = val
-    end)
+    self.CoreStats.Pollen.Changed:Connect(function(val) self.Pollen = val end)
+
+    self.CoreStats.Capacity.Changed:Connect(
+        function(val) self.Capacity = val end)
 
     return self
 end
-function PlayerHelper:isCapacityFull()
-    return self.Pollen >= self.Capacity
-end
+function PlayerHelper:isCapacityFull() return self.Pollen >= self.Capacity end
 function PlayerHelper:updateStats()
     if self.character and self.humanoid then
-        self.humanoid.WalkSpeed =  shared.main.WalkSpeed
-        self.humanoid.JumpPower =  shared.main.JumpPower
+        self.humanoid.WalkSpeed = shared.main.WalkSpeed
+        self.humanoid.JumpPower = shared.main.JumpPower
     end
 end
 function PlayerHelper:_updateCharacter()
@@ -52,7 +48,9 @@ function PlayerHelper:_updateCharacter()
         self.defaultWalkSpeed = self.humanoid.WalkSpeed
         self.defaultJump = self.humanoid.JumpPower
 
-        if self._enforceStatsConnection then self._enforceStatsConnection:Disconnect() end
+        if self._enforceStatsConnection then
+            self._enforceStatsConnection:Disconnect()
+        end
         self._enforceStatsConnection = RunService.Heartbeat:Connect(function()
             if self.humanoid then
                 if self.humanoid.JumpPower ~= shared.main.JumpPower then
@@ -74,28 +72,16 @@ function PlayerHelper:_updateCharacter()
     end
 end
 
+function PlayerHelper:getLocalPlayer() return self.player end
 
+function PlayerHelper:getCharacter() return self.character end
 
-function PlayerHelper:getLocalPlayer()
-    return self.player
-end
-
-function PlayerHelper:getCharacter()
-    return self.character
-end
-
-function PlayerHelper:getHumanoid()
-    return self.humanoid
-end
+function PlayerHelper:getHumanoid() return self.humanoid end
 
 function PlayerHelper:isValid()
-    return self.player 
-        and self.character 
-        and self.character.Parent ~= nil 
-        and self.humanoid 
-        and self.humanoid.Health > 0
-        and self.rootPart
-        and self.rootPart.Parent ~= nil
+    return self.player and self.character and self.character.Parent ~= nil and
+               self.humanoid and self.humanoid.Health > 0 and self.rootPart and
+               self.rootPart.Parent ~= nil
 end
 
 function PlayerHelper:stopMoving()
@@ -110,7 +96,14 @@ function PlayerHelper:stopMoving()
         self.tweenMonitorConnection:Disconnect()
         self.tweenMonitorConnection = nil
     end
-
+    if #self.blockedParts > 0 then
+        for _, part in ipairs(self.blockedParts) do
+            if part and part:IsDescendantOf(workspace) then
+                part.CanCollide = true
+            end
+        end
+        self.blockedParts = {}
+    end
     self.humanoid:Move(Vector3.zero)
     self.humanoid:MoveTo(self.rootPart.Position)
     self:setCharacterAnchored(false)
@@ -118,9 +111,7 @@ function PlayerHelper:stopMoving()
 end
 
 function PlayerHelper:moveTo(position, callback)
-    if not self:isValid() then
-        return false
-    end
+    if not self:isValid() then return false end
 
     self.humanoid:MoveTo(position)
 
@@ -146,83 +137,105 @@ function PlayerHelper:disableWalking(disable)
         humanoid.JumpPower = disable and 0 or shared.main.JumpPower
     end
 
-
     if self.player == game.Players.LocalPlayer then
         local ContextActionService = game:GetService("ContextActionService")
         if disable then
-            ContextActionService:BindAction("DisableMovement", function() return Enum.ContextActionResult.Sink end, false,
-                unpack(Enum.PlayerActions:GetEnumItems()))
+            ContextActionService:BindAction("DisableMovement", function()
+                return Enum.ContextActionResult.Sink
+            end, false, unpack(Enum.PlayerActions:GetEnumItems()))
         else
             ContextActionService:UnbindAction("DisableMovement")
         end
     end
 end
-
+function PlayerHelper:getDistanceByPos(pos)
+    return (self.rootPart.Position - pos).Magnitude or math.huge
+end
 function PlayerHelper:tweenTo(targetPosition, duration, callback)
     if not self:isValid() then return false end
 
     self:setCharacterAnchored(true)
-    local startPosition = self.rootPart.Position
-    local totalDistance = (targetPosition - startPosition).Magnitude
-    local speed = totalDistance / duration
 
-
-    if self.tweenMonitorConnection then
-        self.tweenMonitorConnection:Disconnect()
-        self.tweenMonitorConnection = nil
+    if self.activeTween then
+        self.activeTween:Cancel()
+        self.activeTween = nil
     end
 
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {self.character}
+    rayParams.IgnoreWater = true
+
+    self.blockedParts = {}
+    local direction = targetPosition - self.rootPart.Position
+    local rayResult = workspace:Raycast(self.rootPart.Position, direction, rayParams)
+
+    if rayResult and rayResult.Instance and rayResult.Instance.CanCollide then
+        rayResult.Instance.CanCollide = false
+        table.insert(self.blockedParts, rayResult.Instance)
+    end
+
+    -- Create Tween
+    local tween = TweenService:Create(self.rootPart, TweenInfo.new(
+        duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut
+    ), {CFrame = CFrame.new(targetPosition)})
+
+    self.activeTween = tween
     local completed = false
-    self.tweenMonitorConnection = RunService.Heartbeat:Connect(function(deltaTime)
+
+    local function restoreBlockedParts()
+        for _, part in ipairs(self.blockedParts) do
+            if part and part:IsDescendantOf(workspace) then
+                part.CanCollide = true
+            end
+        end
+        self.blockedParts = {}
+    end
+
+    local function cleanup()
+        if self.tweenMonitorConnection then
+            self.tweenMonitorConnection:Disconnect()
+            self.tweenMonitorConnection = nil
+        end
+    end
+
+    self.tweenMonitorConnection = RunService.Heartbeat:Connect(function()
         if completed then return end
         if not self:isValid() then
             completed = true
+            tween:Cancel()
             self:setCharacterAnchored(false)
-            self.tweenMonitorConnection:Disconnect()
-            self.tweenMonitorConnection = nil
-            return
+            cleanup()
+            restoreBlockedParts()
         end
-
-        local currentPosition = self.rootPart.Position
-        local direction = (targetPosition - currentPosition)
-        local distanceLeft = direction.Magnitude
-
-        if distanceLeft <= 0.1 then
-            completed = true
-            self.rootPart.CFrame = CFrame.new(targetPosition)
-            self:setCharacterAnchored(false)
-            self.tweenMonitorConnection:Disconnect()
-            self.tweenMonitorConnection = nil
-            if callback then callback() end
-            return
-        end
-
-        local moveStep = math.min(speed * deltaTime, distanceLeft)
-        local moveDirection = direction.Unit * moveStep
-        self.rootPart.CFrame = CFrame.new(currentPosition + moveDirection)
     end)
 
+    tween.Completed:Connect(function()
+        if completed then return end
+        completed = true
+        self:setCharacterAnchored(false)
+        cleanup()
+        restoreBlockedParts()
+        self.activeTween = nil
+        if callback then callback() end
+    end)
+
+    tween:Play()
     return true
 end
 
 
 function PlayerHelper:getPosition()
-    if self:isValid() then
-        return self.rootPart.Position
-    end
+    if self:isValid() then return self.rootPart.Position end
     return nil
 end
 
 function PlayerHelper:getCFrame()
-    if self:isValid() then
-        return self.rootPart.CFrame
-    end
+    if self:isValid() then return self.rootPart.CFrame end
     return nil
 end
 
-function PlayerHelper:getRoot()
-    return self.rootPart
-end
+function PlayerHelper:getRoot() return self.rootPart end
 
 function PlayerHelper:isPlayerInField(field)
     if not field or not field:IsA("BasePart") or not self.rootPart then
@@ -230,14 +243,13 @@ function PlayerHelper:isPlayerInField(field)
     end
 
     local fieldCenter = Vector3.new(field.Position.X, 0, field.Position.Z)
-    local playerPos = Vector3.new(self.rootPart.Position.X, 0, self.rootPart.Position.Z)
+    local playerPos = Vector3.new(self.rootPart.Position.X, 0,
+                                  self.rootPart.Position.Z)
     local distance = (fieldCenter - playerPos).Magnitude
 
     local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2
     return distance <= fieldRadius
 end
-
-
 
 function PlayerHelper:debugVisual(pos, color)
     local partColor = color or Color3.fromRGB(255, 0, 0)
@@ -303,7 +315,6 @@ function PlayerHelper:debugVisual(pos, color)
     return part
 end
 
-
 function PlayerHelper:getPlayerStats()
     local success, plrStats = pcall(function()
         local RetrievePlayerStats = Rep.Events.RetrievePlayerStats
@@ -316,7 +327,7 @@ function PlayerHelper:getPlayerStats()
     self.plrStats = plrStats
     self.Honeycomb = plrStats.Honeycomb
 
-    writefile("playerStats.json",HttpService:JSONEncode(plrStats))
+    writefile("playerStats.json", HttpService:JSONEncode(plrStats))
     return self.plrStats
 end
 
@@ -330,7 +341,6 @@ function PlayerHelper:destroy()
         self._characterConnection:Disconnect()
         self._characterConnection = nil
     end
-
 
     self.Honeycomb = nil
     self.plrStats = nil

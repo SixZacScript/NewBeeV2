@@ -99,7 +99,10 @@ function FluentUI:initMainTab()
         Title = "🍯 Honey Production",
         Content = "Rate/sec: 0\nHourly: 0\nDaily: 0\nTotal: 0"
     })
-
+    self.sessionTimeInfo = self.Tabs.Main:AddParagraph({
+        Title = "⏱️ Session Time",
+        Content = "00:00:00"
+    })
 
 
 
