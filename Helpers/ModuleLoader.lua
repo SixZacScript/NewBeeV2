@@ -21,4 +21,13 @@ function ModuleLoaderHelper:get(path)
     return loadedModules[path]
 end
 
+function ModuleLoaderHelper:destroyAll()
+    for path, module in pairs(loadedModules) do
+        if module and typeof(module.destroy) == "function" then
+            print("has" , path)
+            pcall(function() module:destroy() end)
+        end
+        loadedModules[path] = nil
+    end
+end
 return ModuleLoaderHelper

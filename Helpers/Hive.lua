@@ -1,6 +1,6 @@
 local WP = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local HiveHelper = {}
 HiveHelper.__index = HiveHelper
@@ -9,6 +9,7 @@ function HiveHelper.new()
     local self = setmetatable({}, HiveHelper)
     self.player = shared.helper.Player
     self.hive = nil
+    self.CellsFolder = nil
     self.isDestroyed = false
     self._connections = {}
     
@@ -17,8 +18,7 @@ end
 
 function HiveHelper:initHive()
     if self.isDestroyed then return nil end
-    
-    print("Searching for Hive...")
+
     local player = self.player:getLocalPlayer()
     local character = self.player:getCharacter()
     
@@ -35,7 +35,7 @@ function HiveHelper:initHive()
     
     local currentHive = self:getMyHive()
     if currentHive then 
-        print("claimed hive")
+        self.bees = self:getAllBees()
         return currentHive 
     end
 
@@ -43,6 +43,7 @@ function HiveHelper:initHive()
     
     if closestHive then
         self:_claimHive(closestHive, player)
+        self.bees = self:getAllBees()
         return closestHive
     else
         print("No available hives found")
@@ -96,7 +97,7 @@ function HiveHelper:_claimHive(hive, player)
         return
     end
     
-    local basePos = base.Position + Vector3.new(0, 4, 0)
+    local basePos = base.Position + Vector3.new(0, 5, 0)
     
     self.player:tweenTo(basePos,1, function()
         if self.isDestroyed then return end
@@ -132,6 +133,8 @@ function HiveHelper:_verifyHiveClaim(player)
         local owner = hive:FindFirstChild("Owner")
         if owner and owner.Value == player then
             self.hive = hive
+            self.hiveCells = hive.Cells
+            self.CellsFolder = hive.Cells
             return true
         end
     end
@@ -152,6 +155,7 @@ function HiveHelper:getMyHive()
         local owner = hive:FindFirstChild("Owner")
         if owner and owner.Value == player then
             self.hive = hive
+            self.CellsFolder = hive.Cells
             return hive
         end
     end
@@ -165,7 +169,7 @@ function HiveHelper:getHivePosition()
     local currentHive = self:getMyHive()
     if currentHive then
         local base = currentHive:FindFirstChild("patharrow") and currentHive.patharrow:FindFirstChild("Base")
-        return base and base.Position
+        return base and base.Position + Vector3.new(0, 2, 0)
     end
     return nil
 end
@@ -178,35 +182,164 @@ function HiveHelper:isHiveValid()
     return currentHive ~= nil and currentHive.Parent ~= nil
 end
 
+function HiveHelper:getAllBees()
+    local bees = {}
+    if not self.CellsFolder then return {} end
 
+    for _, bee in pairs(self.CellsFolder:GetChildren()) do
+        local cellType = bee:FindFirstChild('CellType')
+        local levelPart = bee:FindFirstChild('LevelPart')
+        
+        -- Early exit if required components are missing
+        if not (cellType and levelPart) then
+            continue
+        end
+        
+        local surfaceGui = levelPart:FindFirstChild("SurfaceGui")
+        if not surfaceGui then
+            continue
+        end
+        
+        local textLabel = surfaceGui:FindFirstChild("TextLabel")
+        if not textLabel then
+            continue
+        end
+        
+        -- Cache all child lookups
+        local cellID = bee:FindFirstChild('CellID')
+        local cellX = bee:FindFirstChild('CellX')
+        local cellY = bee:FindFirstChild('CellY')
+        
+        bees[bee] = {
+            level = textLabel.Text,
+            type = cellType.Value,
+            CellID = cellID and cellID.Value,
+            X = cellX and cellX.Value,
+            Y = cellY and cellY.Value,
+        }
+    end
+    
+    return bees
+end
+
+function HiveHelper:getLowestLevelBee()
+    local bees = self:getAllBees()
+    local lowestBee = nil
+    local lowestLevel = math.huge
+
+    for beeInstance, data in pairs(bees) do
+        local level = tonumber(data.level)
+        if level and level < lowestLevel then
+            lowestLevel = level
+            lowestBee = {
+                instance = beeInstance,
+                level = level,
+                type = data.type,
+                CellID = data.CellID,
+                X = data.X,
+                Y = data.Y
+            }
+        end
+    end
+
+    return lowestBee
+end
 
 -- Get the actual hive object
 function HiveHelper:getHive()
     return self.hive
 end
 
--- Destroy method for cleanup
+function HiveHelper:saveBeesToJson()
+    local bees = self:getAllBees()
+    
+    -- Convert to JSON
+    local success, jsonString = pcall(function()
+        return HttpService:JSONEncode(bees)
+    end)
+    
+    if not success then
+        warn("Failed to encode bees data to JSON: " .. tostring(jsonString))
+        return false
+    end
+    
+    -- Save to file (method depends on your environment)
+    local success, result = pcall(function()
+        -- For Roblox Studio, you can use writefile (if supported)
+        if writefile then
+            writefile("bees_data.json", jsonString)
+            return true
+        else
+            -- For regular Roblox, you might need to use DataStoreService
+            -- or send to an external web service
+            warn("File writing not supported in this environment")
+            return false
+        end
+    end)
+    
+    if success and result then
+        print("Bees data saved to bees_data.json")
+        return true
+    else
+        warn("Failed to save bees data to file")
+        return false
+    end
+end
+function HiveHelper:waitUntilHiveClaimed(timeout)
+    timeout = timeout or 10 
+    local startTime = tick()
+
+    while tick() - startTime < timeout do
+        if self:getMyHive() then return true end
+        task.wait(0.2)
+    end
+
+    warn("Timeout: Hive was not claimed in time.")
+    return false
+end
+
+function HiveHelper:getBeeByLevel(honeycombData, typeOfSearch)
+    local targetBee = nil
+    local targetLevel = (typeOfSearch == "lowest") and math.huge or -math.huge
+
+    for _, xCoords in pairs(honeycombData) do
+        for _, yCoords in pairs(xCoords) do
+            local bee = yCoords
+            if bee and bee.Lvl then
+                if typeOfSearch == "lowest" then
+                    if bee.Lvl < targetLevel then
+                        targetLevel = bee.Lvl
+                        targetBee = bee
+                    end
+                elseif typeOfSearch == "highest" then
+                    if bee.Lvl > targetLevel then
+                        targetLevel = bee.Lvl
+                        targetBee = bee
+                    end
+                else
+                    error("Invalid typeOfSearch. Use 'lowest' or 'highest'.")
+                end
+            end
+        end
+    end
+    return targetBee
+end
+
 function HiveHelper:destroy()
     if self.isDestroyed then return end
-    
-    print("Destroying HiveHelper...")
+
     self.isDestroyed = true
-    
-    -- Disconnect all connections
+
     for _, connection in pairs(self._connections) do
         if connection and connection.Connected then
             connection:Disconnect()
         end
     end
+
     self._connections = {}
-    
-    -- Clear references
     self.player = nil
     self.hive = nil
-    
-    -- Clear metatable
+    self.CellsFolder = nil
     setmetatable(self, nil)
-    
-    print("HiveHelper destroyed")
 end
 return HiveHelper
