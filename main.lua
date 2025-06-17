@@ -1,5 +1,5 @@
-local HttpService = game:GetService("HttpService")
-_G.URL = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/refs/heads/master"
+_G.URL = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/master"
+
 shared.ModuleLoader = loadstring(game:HttpGet(_G.URL..'/Helpers/ModuleLoader.lua'))()
 local GUIHelperModule = shared.ModuleLoader:load(_G.URL.."/Class/GUI.lua")
 local PlayerModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Player.lua")
