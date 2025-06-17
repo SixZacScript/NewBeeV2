@@ -113,13 +113,17 @@ function BeeModule:isBeeSelected(bee)
 end
 
 function BeeModule:doJelly(X, Y)
-    
     local Event = game:GetService("ReplicatedStorage").Events.ConstructHiveCellFromEgg
     local success, result = pcall(function()
-        return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly", 1, false)
+        if self.jellyCount >= 1 then
+            return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly")
+        else
+            return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly", 1, false)
+        end
     end)
     
     if success then
+        self.jellyCount += 1
         return result
     else
         warn("Server call failed:", result)
@@ -136,7 +140,7 @@ function BeeModule:startAutoJelly()
     local cellModel = shared.helper.Hive:getCellByXY(X, Y)
     
     if not cellModel then return self:stopAutoJelly("Unknown cell.") end
-    
+    self.jellyCount = 0
     autoJelly.isRunning = true
     self._jellyThread = coroutine.create(function()
         while autoJelly.isRunning do
@@ -144,11 +148,8 @@ function BeeModule:startAutoJelly()
                 return self:stopAutoJelly("Cell changed while auto jelly was running.") 
             end
             -- local startTime = tick()
-            self:doJelly(X, Y)
-            -- local endTime = tick()
-            -- print(string.format("doJelly execution time: %.3f seconds", endTime - startTime))
-
-            task.wait(0.1)
+            local jellyCount = self:doJelly(X, Y)
+            task.wait(0.25)
             
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
@@ -158,7 +159,7 @@ function BeeModule:startAutoJelly()
             local isTargetBee = self:isBeeSelected(beeName) or table.find(selectedTypes, beeRarity) or (autoJelly.anyGifted and hasGiftedCell)
             
             if isTargetBee then return self:stopAutoJelly("✅Found target bee✅") end
-            -- if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
+            if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
         end
         self._jellyThread = nil
     end)
@@ -167,6 +168,7 @@ function BeeModule:startAutoJelly()
 end
 
 function BeeModule:stopAutoJelly(reason)
+    self.jellyCount = 0
     shared.main.autoJelly.isRunning = false
     shared.Fluent.jellyStartButton:SetTitle("Start")
 
