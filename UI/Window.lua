@@ -1,4 +1,3 @@
-local HttpService = game:GetService('HttpService')
 local WP = game:GetService('Workspace')
 local BalloonsFolder  = WP:FindFirstChild("Balloons")
 loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()

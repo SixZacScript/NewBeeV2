@@ -316,7 +316,13 @@ function PlayerHelper:debugVisual(pos, color)
 
     return part
 end
-
+function PlayerHelper:equipMask(mask)
+    if not mask then mask = self.plrStats.EquippedAccessories.Hat end
+    if table.find(self.plrStats.Accessories, mask) then
+        local Event = game:GetService("ReplicatedStorage").Events.ItemPackageEvent
+        Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
+    end
+end
 function PlayerHelper:getPlayerStats()
     local success, plrStats = pcall(function()
         local RetrievePlayerStats = Rep.Events.RetrievePlayerStats
@@ -328,6 +334,7 @@ function PlayerHelper:getPlayerStats()
     end
     self.plrStats = plrStats
     self.Honeycomb = plrStats.Honeycomb
+    self.lastHat = self.plrStats.EquippedAccessories.Hat or nil
 
     writefile("playerStats.json", HttpService:JSONEncode(plrStats))
     return self.plrStats

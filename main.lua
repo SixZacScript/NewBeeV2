@@ -65,8 +65,6 @@ shared.helper.Hive = HiveModule.new()
 shared.helper.Quest = QuestHelper.new() 
 shared.Bot = BotModule.new()
 
--- intial hive after all
-
 
 shared.main.Hive = shared.helper.Hive:initHive()
 

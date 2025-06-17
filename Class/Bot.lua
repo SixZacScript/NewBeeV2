@@ -284,6 +284,7 @@ function Bot:stop()
     
     if self.plr then
         self.plr:stopMoving()
+        self.plr:equipMask()
     end
 end
 
