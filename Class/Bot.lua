@@ -166,6 +166,7 @@ function Bot.new()
     self.tokenHelper = TokenHelper.new(self)
     
     -- Initialize
+    self.plr:equipMask()
     self:setupRealtime()
     self:startIntervalTask()
     
