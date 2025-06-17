@@ -113,6 +113,7 @@ function BeeModule:isBeeSelected(bee)
 end
 
 function BeeModule:doJelly(X, Y)
+    
     local Event = game:GetService("ReplicatedStorage").Events.ConstructHiveCellFromEgg
     local success, result = pcall(function()
         return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly", 1, false)
@@ -142,11 +143,12 @@ function BeeModule:startAutoJelly()
             if autoJelly.X ~= X or autoJelly.Y ~= Y then 
                 return self:stopAutoJelly("Cell changed while auto jelly was running.") 
             end
-            
+            local startTime = tick()
             local jellyCount = self:doJelly(X, Y)
+            local endTime = tick()
+            print(string.format("doJelly execution time: %.3f seconds", endTime - startTime))
             
-            -- Add a small wait to prevent overwhelming the server
-            wait(0.2) -- or task.wait(0.1) in newer versions
+            task.wait(0.2)
             
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
