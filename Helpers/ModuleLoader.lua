@@ -10,9 +10,12 @@ function ModuleLoaderHelper:destroy(path)
 end
 
 function ModuleLoaderHelper:load(path)
-    -- self:destroy(path)
-    -- loadedModules[path] = loadstring(game:HttpGet(path))()
-    loadedModules[path] = loadstring(readfile(path))()
+    self:destroy(path)
+    if _G.isGithub then
+        loadedModules[path] = loadstring(game:HttpGet(path))()
+    else
+        loadedModules[path] = loadstring(readfile(path))()
+    end
     return loadedModules[path]
 end
 

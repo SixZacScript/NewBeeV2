@@ -1,8 +1,14 @@
--- _G.URL = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/master"
-_G.URL = "NewBeeV2"
+_G.isGithub = true
 
--- shared.ModuleLoader = loadstring(game:HttpGet(_G.URL..'/Helpers/ModuleLoader.lua'))()
-shared.ModuleLoader = loadstring(readfile(_G.URL..'/Helpers/ModuleLoader.lua'))()
+if _G.isGithub then
+    _G.URL = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/master"
+    shared.ModuleLoader = loadstring(game:HttpGet(_G.URL..'/Helpers/ModuleLoader.lua'))()
+else
+    _G.URL = "NewBeeV2"
+    shared.ModuleLoader = loadstring(readfile(_G.URL..'/Helpers/ModuleLoader.lua'))()
+end
+-- 
+
 local GUIHelperModule = shared.ModuleLoader:load(_G.URL.."/Class/GUI.lua")
 local PlayerModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Player.lua")
 local MonsterModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Monster.lua")
