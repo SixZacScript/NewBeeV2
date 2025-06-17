@@ -7,7 +7,7 @@ HiveHelper.__index = HiveHelper
 
 function HiveHelper.new()
     local self = setmetatable({}, HiveHelper)
-    self.player = shared.helper.Player
+    
     self.hive = nil
     self.CellsFolder = nil
     self.isDestroyed = false
@@ -18,7 +18,7 @@ end
 
 function HiveHelper:initHive()
     if self.isDestroyed then return nil end
-
+    self.player = shared.helper.Player
     local player = self.player:getLocalPlayer()
     local character = self.player:getCharacter()
     

@@ -7,7 +7,7 @@ PlayerHelper.__index = PlayerHelper
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Debris = game:GetService("Debris")
+
 
 function PlayerHelper.new()
     local self = setmetatable({}, PlayerHelper)
@@ -113,26 +113,12 @@ function PlayerHelper:stopMoving()
     self:disableWalking(false)
 end
 
-function PlayerHelper:moveTo(position, callback)
-    if not self:isValid() then return false end
-
-    self.humanoid:MoveTo(position)
-
-    if callback then
-        local connection
-        connection = self.humanoid.MoveToFinished:Connect(function(reached)
-            connection:Disconnect()
-            return callback(reached)
-        end)
-    end
-
-    return true
-end
 
 function PlayerHelper:setCharacterAnchored(state)
     if not self:isValid() then return end
     self.rootPart.Anchored = state
 end
+
 function PlayerHelper:disableWalking(disable)
     local humanoid = self.humanoid
     if humanoid then
@@ -151,9 +137,11 @@ function PlayerHelper:disableWalking(disable)
         end
     end
 end
+
 function PlayerHelper:getDistanceByPos(pos)
     return (self.rootPart.Position - pos).Magnitude or math.huge
 end
+
 function PlayerHelper:tweenTo(targetPosition, duration, callback)
     if not self:isValid() then return false end
 
@@ -228,16 +216,6 @@ function PlayerHelper:tweenTo(targetPosition, duration, callback)
 end
 
 
-function PlayerHelper:getPosition()
-    if self:isValid() then return self.rootPart.Position end
-    return nil
-end
-
-function PlayerHelper:getCFrame()
-    if self:isValid() then return self.rootPart.CFrame end
-    return nil
-end
-
 function PlayerHelper:getRoot() return self.rootPart end
 
 function PlayerHelper:isPlayerInField(field)
@@ -253,70 +231,6 @@ function PlayerHelper:isPlayerInField(field)
     return distance <= fieldRadius
 end
 
-
-function PlayerHelper:debugVisual(pos, color)
-    local partColor = color or Color3.fromRGB(255, 0, 0)
-
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(0.5, 0.5, 0.5)
-    part.Position = pos
-    part.Anchored = true
-    part.CanCollide = false
-    part.Color = partColor
-    part.Material = Enum.Material.Neon
-    part.Name = "MoveToPart"
-    part.Parent = workspace.Terrain
-
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "MoveToBillboard"
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Adornee = part
-    billboard.Parent = part
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 251, 0)
-    label.TextScaled = true
-    label.Text = ""
-    label.Parent = billboard
-
-    -- Create beam line
-    local a0 = Instance.new("Attachment")
-    a0.Name = "StartAttachment"
-    a0.Parent = self.rootPart
-
-    local a1 = Instance.new("Attachment")
-    a1.Name = "EndAttachment"
-    a1.Parent = part
-
-    local beam = Instance.new("Beam")
-    beam.Attachment0 = a0
-    beam.Attachment1 = a1
-    beam.Width0 = 0.15
-    beam.Width1 = 0.15
-    beam.FaceCamera = true
-    beam.Color = ColorSequence.new(partColor)
-    beam.LightEmission = 1
-    beam.Transparency = NumberSequence.new(0)
-    beam.Parent = a0
-
-    task.spawn(function()
-        while part and part.Parent and self:isValid() do
-            local distance = (self.rootPart.Position - part.Position).Magnitude
-            label.Text = string.format("%.1f studs", distance)
-            task.wait(0.1)
-        end
-    end)
-    local distance = (self.rootPart.Position - pos).Magnitude
-    local speed = self.humanoid and self.humanoid.WalkSpeed or 16
-    local lifetime = math.clamp(distance / speed + 2, 2, 10)
-    Debris:AddItem(part, lifetime)
-
-    return part
-end
 function PlayerHelper:equipMask(mask)
     if not mask and shared.main.Equip.defaultMask then mask = shared.main.Equip.defaultMask end
     if table.find(self.plrStats.Accessories, mask) and mask then

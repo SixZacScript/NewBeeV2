@@ -511,9 +511,10 @@ function Bot:handleDoingQuest(taskData)
     
 
     self.currentField = self:determineQuestField(currentTask)
-    if currentTask.Type == "Collect Pollen" then
+    if currentTask.Type == "Collect Pollen" or currentTask.Type == "Collect Tokens" then
         return self.taskManager:doFarming()
     end
+
 
     if currentTask.Type == "Defeat Monsters" then
         return self.taskManager:doHunting()

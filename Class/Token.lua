@@ -423,11 +423,42 @@ end
 function TokenHelper:_handleTokenCollect(tokenParams)
     local serverID = tokenParams.ID
     local collectedToken = self.activeTokens[serverID]
-    
+    local function stripEmoji(input)
+        return input:gsub("[\128-\255]+%s*", "") 
+    end
+
     if collectedToken then
         self:_updateCollectedStats(collectedToken)
         if CONFIG.DEBUG.LOG_TOKEN_EVENTS then
             print(string.format("[TokenHelper] Collected token %s (%s)", collectedToken.name, tostring(serverID)))
+        end
+    end
+
+    if shared.helper.Quest and collectedToken then
+        local questHelper = shared.helper.Quest
+        if questHelper.currentQuest and questHelper.currentTask then
+            -- Initialize processed tokens tracking if it doesn't exist
+            if not questHelper.processedTokens then
+                questHelper.processedTokens = {}
+            end
+            
+            -- Check if this specific token instance was already processed
+            if questHelper.processedTokens[serverID] then
+                self:removeToken(serverID)
+                return -- Exit early to prevent duplicate processing
+            end
+            
+            -- Mark this token instance as processed BEFORE updating progress
+            questHelper.processedTokens[serverID] = true
+            
+            for index, taskData in pairs(questHelper.currentQuest.Tasks) do
+                if taskData.Type == "Collect Tokens" then
+                    local tokenType = taskData.Tag
+                    if tokenType == stripEmoji(collectedToken.name) then
+                        taskData.progress = questHelper:updateProgress(taskData, 1)
+                    end
+                end
+            end
         end
     end
     

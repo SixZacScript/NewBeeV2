@@ -356,7 +356,14 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         warn("Error in onServerGiveEvent:\n" .. result)
     end
 end
-
+function QuestHelper:updateProgress(taskData, amount)
+    if not taskData then return warn("no task found") end
+    local currentProgress = taskData.progress[2]
+    local maxProgress = taskData.progress[3]
+    taskData.progress[2] = math.min(currentProgress + amount, maxProgress)
+    taskData.progress[1] = taskData.progress[2] / maxProgress
+    return taskData.progress
+end
 function QuestHelper:getAvailableTask()
     local allActiveQuests = self:getActiveQuest()
     if not allActiveQuests then return false end
@@ -377,7 +384,7 @@ function QuestHelper:getAvailableTask()
                 elseif not fallbackTask then
                     fallbackTask = {quest = questData, task = taskData}
                 end
-            elseif taskData.Type == "Collect Pollen" then
+            elseif taskData.Type == "Collect Pollen" or taskData.Type == "Collect Tokens" then
                 self:setQuest(questData, taskData)
                 return questData
             end
