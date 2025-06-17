@@ -114,40 +114,53 @@ end
 
 function BeeModule:doJelly(X, Y)
     local Event = game:GetService("ReplicatedStorage").Events.ConstructHiveCellFromEgg
-    return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly", 1, false)
-
+    local success, result = pcall(function()
+        return Event:InvokeServer(tonumber(X), tonumber(Y), "RoyalJelly", 1, false)
+    end)
+    
+    if success then
+        return result
+    else
+        warn("Server call failed:", result)
+        return 0 -- or handle the error as needed
+    end
 end
+
 function BeeModule:startAutoJelly()
     if self._jellyThread and coroutine.status(self._jellyThread) ~= "dead" then return end
-
+    
     local autoJelly = shared.main.autoJelly
     local X, Y = autoJelly.X, autoJelly.Y
     local selectedTypes = autoJelly.selectedTypes
     local cellModel = shared.helper.Hive:getCellByXY(X, Y)
-
+    
     if not cellModel then return self:stopAutoJelly("Unknown cell.") end
-
+    
     autoJelly.isRunning = true
     self._jellyThread = coroutine.create(function()
         while autoJelly.isRunning do
-            if autoJelly.X ~= X or autoJelly.Y ~= Y then return self:stopAutoJelly("Cell changed while auto jelly was running.") end
-
+            if autoJelly.X ~= X or autoJelly.Y ~= Y then 
+                return self:stopAutoJelly("Cell changed while auto jelly was running.") 
+            end
+            
             local jellyCount = self:doJelly(X, Y)
+            
+            -- Add a small wait to prevent overwhelming the server
+            wait(0.1) -- or task.wait(0.1) in newer versions
+            
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
             local beeName = cellModel.CellType.Value
             local beeRarity = self:getBeeRarity(self:normalizeName(beeName))
             
-
             local isTargetBee = self:isBeeSelected(beeName) or table.find(selectedTypes, beeRarity) or (autoJelly.anyGifted and hasGiftedCell)
             
             if isTargetBee then return self:stopAutoJelly("✅Found target bee✅") end
             if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
-            task.wait(0.25)
         end
         self._jellyThread = nil
     end)
-
+    
     coroutine.resume(self._jellyThread)
 end
 
