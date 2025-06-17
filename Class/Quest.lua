@@ -227,15 +227,15 @@ function QuestHelper:startCollectionRateUpdater()
         while true do
             task.wait(1)
 
-            local stats = self.collectedStatics
-            if not stats or stats.startTime <= 0 then continue end
+            local PollenStats = self.collectedStatics
+            if not PollenStats or PollenStats.startTime <= 0 then continue end
 
-            local elapsedTime = tick() - stats.startTime
+            local elapsedTime = tick() - PollenStats.startTime
             if elapsedTime <= 0 then continue end
 
-            -- Pollen Stats
-            if stats.totalCollectedPollen > 0 and shared.Fluent and shared.Fluent.PollenInfo then
-                local pollenPerSec = stats.totalCollectedPollen / elapsedTime
+            -- Pollen PollenStats
+            if PollenStats.totalCollectedPollen > 0 and shared.Fluent and shared.Fluent.PollenInfo then
+                local pollenPerSec = PollenStats.totalCollectedPollen / elapsedTime
                 local pollenPerHour = pollenPerSec * 3600
                 local pollenPerDay = pollenPerSec * 86400
 
@@ -244,13 +244,13 @@ function QuestHelper:startCollectionRateUpdater()
                     shared.TokenDataModule:formatNumber(pollenPerSec, 2),
                     shared.TokenDataModule:formatNumber(pollenPerHour, 2),
                     shared.TokenDataModule:formatNumber(pollenPerDay, 2),
-                    shared.TokenDataModule:formatNumber(stats.totalCollectedPollen, 2)
+                    shared.TokenDataModule:formatNumber(PollenStats.totalCollectedPollen, 2)
                 ))
             end
 
-            -- Honey Stats
-            if stats.totalConvertHoney > 0 and shared.Fluent and shared.Fluent.HoneyInfo then
-                local honeyPerSec = stats.totalConvertHoney / elapsedTime
+            -- Honey PollenStats
+            if PollenStats.totalConvertHoney > 0 and shared.Fluent and shared.Fluent.HoneyInfo then
+                local honeyPerSec = PollenStats.totalConvertHoney / elapsedTime
                 local honeyPerHour = honeyPerSec * 3600
                 local honeyPerDay = honeyPerSec * 86400
 
@@ -259,7 +259,7 @@ function QuestHelper:startCollectionRateUpdater()
                     shared.TokenDataModule:formatNumber(honeyPerSec, 2),
                     shared.TokenDataModule:formatNumber(honeyPerHour, 2),
                     shared.TokenDataModule:formatNumber(honeyPerDay, 2),
-                    shared.TokenDataModule:formatNumber(stats.totalConvertHoney, 2)
+                    shared.TokenDataModule:formatNumber(PollenStats.totalConvertHoney, 2)
                 ))
             end
         end
