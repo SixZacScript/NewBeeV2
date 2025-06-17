@@ -147,8 +147,8 @@ function BeeModule:startAutoJelly()
             local jellyCount = self:doJelly(X, Y)
             local endTime = tick()
             print(string.format("doJelly execution time: %.3f seconds", endTime - startTime))
-            
-            task.wait(0.2)
+
+            task.wait(0.1)
             
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
@@ -158,7 +158,7 @@ function BeeModule:startAutoJelly()
             local isTargetBee = self:isBeeSelected(beeName) or table.find(selectedTypes, beeRarity) or (autoJelly.anyGifted and hasGiftedCell)
             
             if isTargetBee then return self:stopAutoJelly("✅Found target bee✅") end
-            if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
+            -- if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
         end
         self._jellyThread = nil
     end)
