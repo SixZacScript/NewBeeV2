@@ -10,6 +10,7 @@ function ModuleLoaderHelper:destroy(path)
 end
 
 function ModuleLoaderHelper:load(path)
+    print(path)
     self:destroy(path)
     loadedModules[path] = loadstring(game:HttpGet(path))()
     return loadedModules[path]
