@@ -1,6 +1,7 @@
 local Rep = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local ServerItemPackEvent = Rep.Events.ServerItemPackEvent
+local ServerMonsterEvent = Rep.Events.ServerMonsterEvent
 
 local QuestHelper = {}
 QuestHelper.__index = QuestHelper
@@ -11,12 +12,11 @@ function QuestHelper.new()
     self.allQuests = self.QuestService:GetAllQuests()
     self.playerStats = shared.helper.Player:getPlayerStats()
     self.activeQuest = {}
-    self.PollenData = {}
     self.questHistory = {}
     self.currentQuest = nil
     self.currentTask = nil
     self.isCompleted = false
-
+    self.monsterEvent = {}
     self.collectedStatics = {
         startTime = tick(),
         totalCollectedPollen = 0,
@@ -38,16 +38,18 @@ function QuestHelper:_setupEventHandlers()
     Fluent.autoQuestToggle:OnChanged(function(value)
         main.autoQuest = value
         if not value then return self:clearCurrentQuest() end
-        self:selectCurrentQuestAndTask()
+        self:getAvailableTask()
     end)
 
     Fluent.doNpcQuestDropdown:OnChanged(function(value)
         helperNpc:updateDoQuest(value)
         if main.autoQuest then
-            self:selectCurrentQuestAndTask()
+            self:getAvailableTask()
         end
     end)
-
+    ServerMonsterEvent.OnClientEvent:Connect(function(data)
+          self:onMonsterEvent(data)
+    end)
     ServerItemPackEvent.OnClientEvent:Connect(function(eventType, data)
         
         self:onServerGiveEvent(eventType ,data)
@@ -76,38 +78,44 @@ function QuestHelper:getActiveQuest()
     self.playerStats = shared.helper.Player:getPlayerStats()
     if not self.playerStats or not self.playerStats.Quests or not self.playerStats.Quests.Active then
         warn("Invalid playerStats data")
-        return self.activeQuest, false
+        return {}, false
     end
 
     local activeNPC, status  = shared.helper.Npc:getDoQuestNpcNames()
-    if not status then return self.activeQuest , false end
+    if not status then return {} , false end
+    
 
-    for index, quest in ipairs(self.playerStats.Quests.Active) do 
+    for _, quest in ipairs(self.playerStats.Quests.Active) do 
         local questName = quest.Name
         local questData = self:getQuestDataByName(questName)
-        if questData then
-            if activeNPC[questData.NPC] then
-                local progress = self:getQuestProgress(questName, questData.Tasks)
-                local nextQuestData = self:getNextQuest(questName)
-                if progress then 
-                    for index, taskData in pairs(questData.Tasks) do
-                        taskData.progress = progress[index]
-                    end
+        if questData and questData.NPC then
+ 
+            local progress = self:getQuestProgress(questName, questData.Tasks)
+            local nextQuestData = self:getNextQuest(questName)
+            if progress then 
+                for index, taskData in pairs(questData.Tasks) do
+                    taskData.progress = progress[index]
                 end
-                if nextQuestData then questData.NextQuest = nextQuestData.Name end
-
-                self.activeQuest[questName] = questData;
-            else
-                self.activeQuest[questName] = nil
             end
+
+            questData.canDo = activeNPC[questData.NPC] and true or false 
+            questData.isCompleted = self:isQuestCompleted(questData) 
+            questData.NextQuest = nextQuestData and nextQuestData.Name or nil
+
+            self.activeQuest[questName] = questData;
         end
+
+        if questData and questData.isCompleted and questData.NextQuest then
+            self:submitQuest(questData)
+        end
+        
     end
 
     writefile("activeQeusts.json", HttpService:JSONEncode(self.activeQuest))
     return self.activeQuest, true
 end
 
-function QuestHelper:getQuestProgress(questName,questTask)
+function QuestHelper:getQuestProgress(questName, questTask)
     local playerStats = self.playerStats
     local success, result = pcall(function()
         local activeQuestData = self.QuestService:GetActiveData(questName, playerStats)
@@ -142,7 +150,6 @@ function QuestHelper:getQuestProgress(questName,questTask)
     return result
 end
 
-
 function QuestHelper:getQuestDataByName(questName)
     local success, result = pcall(function()
         for _, quest in ipairs(self.allQuests) do
@@ -157,6 +164,36 @@ function QuestHelper:getQuestDataByName(questName)
         return nil
     end
     return result
+end
+
+function QuestHelper:isQuestCompleted(quest)
+    local allTaskCompleted = true
+    for i = #quest.Tasks, 1, -1 do
+        local taskData = quest.Tasks[i]
+        if taskData.progress and taskData.progress[1] < 1 then
+            self.currentTask = taskData
+            allTaskCompleted = false
+            break
+        end
+    end
+    return allTaskCompleted
+end
+
+function QuestHelper:submitQuest(quest)
+    local nextQuest = quest.NextQuest
+    local completeQuestEvent = game:GetService("ReplicatedStorage").Events.CompleteQuest
+    completeQuestEvent:FireServer(quest.Name)
+
+    if nextQuest then
+        local giveQuestEvent = game:GetService("ReplicatedStorage").Events.GiveQuest
+        giveQuestEvent:FireServer(nextQuest)
+    end
+
+    if self.currentQuest and quest.Name == self.currentQuest.Name then
+        self:getAvailableTask()
+    end
+
+    self.activeQuest[quest.Name] = nil
 end
 
 function QuestHelper:getNextQuest(completedQuestName)
@@ -183,85 +220,7 @@ function QuestHelper:getNextQuest(completedQuestName)
     return result
 end
 
-function QuestHelper:selectCurrentQuestAndTask(currentQuestName)
-    local success, err = xpcall(function()
-        local activeQuest, status = self:getActiveQuest()
-        if not status then
-            self:clearCurrentQuest()
-            shared.helper.GUIHelper:updateQuest({
-                title = "📜 No active quest",
-                content  = "No active quest available",
-                progress = 0
-            })
-            return nil
-        end
 
-        if self.currentTask then return end
-
-        self.isCompleted = false
-
-        local selectedQuestName, selectedQuest = nil, nil
-        for name, quest in pairs(activeQuest) do
-            if not currentQuestName then
-                selectedQuestName = name
-                selectedQuest = quest
-                break
-            elseif currentQuestName and name ~= currentQuestName then
-                selectedQuestName = name
-                selectedQuest = quest
-                break
-            end
-        end
-
-        if not selectedQuest then
-            self:clearCurrentQuest()
-            shared.helper.GUIHelper:updateQuest({
-                title = "📜 No active quest",
-                content  = "No active quest available",
-                progress = 0
-            })
-            return
-        end
-
-        self.currentQuest = selectedQuest
-        local allTaskCompleted = true
-
-        for i = #selectedQuest.Tasks, 1, -1 do
-            local task = selectedQuest.Tasks[i]
-            if task.progress and task.progress[1] < 1 then
-                self.currentTask = task
-                allTaskCompleted = false
-                break
-            end
-        end
-
-        if allTaskCompleted then
-            self.currentTask = selectedQuest.Tasks[1]
-            self.isCompleted = true
-        end
-        self:updateDisplay()
-        self.questHistory[self.currentQuest.Name] = self.currentQuest.Tasks
-
-        writefile("questHistory.json", HttpService:JSONEncode(self.questHistory))
-        return selectedQuest
-    end, debug.traceback)
-
-    if not success then
-        warn("[QuestHelper] Failed to select current quest and task:\n" .. err)
-    end
-end
-
-
-
-function QuestHelper:getNextAvailableTask()
-    if not self.currentQuest or not self.currentQuest.Tasks then return nil end
-    for _, taskData in ipairs(self.currentQuest.Tasks) do
-        if taskData ~= self.currentTask and taskData.progress and taskData.progress[1] < 1 then
-            return taskData
-        end
-    end
-    return nil
-end
 
 function QuestHelper:startCollectionRateUpdater()
     task.spawn(function()
@@ -306,39 +265,31 @@ function QuestHelper:startCollectionRateUpdater()
         end
     end)
 end
-
-
-function QuestHelper:printTable(tbl, title, indent)
-    title = title or "📋 Table Output"
-    print("========== " .. title .. " ==========")
-
-    local function getMaxWidth(tbl)
-        local maxKey, maxValue = 0, 0
-        for k, v in pairs(tbl) do
-            maxKey = math.max(maxKey, tostring(k):len())
-            maxValue = math.max(maxValue, tostring(v):len())
+function QuestHelper:onMonsterEvent(data)
+    local Action = data.Action
+    if Action == "Kill" and self.currentQuest then
+        local monsterType = data.MonsterType
+        for questName, questData in pairs(self.activeQuest) do
+            for _, taskData in pairs(questData.Tasks) do 
+                if taskData.Type == "Defeat Monsters" and taskData.MonsterType == monsterType then
+                    taskData.progress[2] = math.min(taskData.progress[2] + 1, taskData.progress[3])
+                    taskData.progress[1] = math.min(taskData.progress[2] / taskData.progress[3], 1.0)
+                end
+            end
         end
-        return maxKey, maxValue
+        
+    end
+    if Action == "Kill" then
+        local killTime = data.KillTime
+        local timeString = os.date("!%Y-%m-%d %H:%M:%S", killTime + (7 * 3600))
+        data.thaitime = timeString
+        table.insert(self.monsterEvent,data)
+        writefile('monsterEvent.json',HttpService:JSONEncode(self.monsterEvent))
     end
 
-    local keyWidth, valueWidth = getMaxWidth(tbl)
-    local formatStr = string.format("%%-%ds | %%-%ds", keyWidth, valueWidth)
-
-    print(string.format(formatStr, "Key", "Value"))
-    print(string.rep("-", keyWidth + valueWidth + 3))
-
-    for k, v in pairs(tbl) do
-        print(string.format(formatStr, tostring(k), tostring(v)))
-    end
-
-    print(string.rep("=", keyWidth + valueWidth + 3))
 end
-
 function QuestHelper:onServerGiveEvent(eventType, data)
     local success, result = xpcall(function()
-        -- Store pollen data
-        self.PollenData[eventType] = self.PollenData[eventType] or {}
-        table.insert(self.PollenData[eventType], data)
 
         -- Handle Honey conversion
         if eventType == "Give" and data.C == "Honey" then
@@ -354,7 +305,7 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         local PollenColor = data.L
 
         if typeof(PollenRealAmount) ~= "number" then return end
-
+        self.collectedStatics.totalCollectedPollen += PollenRealAmount
         local allTasks = self.currentQuest.Tasks
         local allCompleted = true
 
@@ -381,13 +332,7 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         -- Move to next task if current is done
         if self.currentTask and self.currentTask.progress[1] >= 1 and not self.isCompleted then
             print("current task completed, finding next quest")
-            local newTask = self:getNextAvailableTask()
-            if newTask then
-                self.currentTask = newTask
-            else
-                self:clearCurrentQuest()
-                return self:selectCurrentQuestAndTask()
-            end
+            self:getAvailableTask()
         end
 
         self:updateDisplay()
@@ -397,6 +342,40 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         warn("Error in onServerGiveEvent:\n" .. result)
     end
 end
+
+function QuestHelper:getAvailableTask()
+    local allActiveQuests = self:getActiveQuest()
+    if not allActiveQuests then return false end
+
+    -- First, look for "Defeat Monsters" tasks
+    for _, questData in pairs(allActiveQuests) do
+        if not questData.canDo then continue end
+        for _, taskData in pairs(questData.Tasks or {}) do
+            if taskData.Type == "Defeat Monsters" and taskData.progress[1] < 1 then
+                local canhunt = shared.helper.Monster:canHuntMonster(taskData.MonsterType)
+                if canhunt then
+                    self:setQuest(questData, taskData)
+                    return questData
+                end
+            end
+        end
+    end
+
+    -- If none found, look for "Collect Pollen" tasks
+    for _, questData in pairs(allActiveQuests) do
+        if not questData.canDo then continue end
+        for _, taskData in pairs(questData.Tasks or {}) do
+            if taskData.Type == "Collect Pollen" and taskData.progress[1] < 1 then
+                self:setQuest(questData, taskData)
+                return questData
+            end
+        end
+    end
+
+
+    return false
+end
+
 
 
 function QuestHelper:selectPreviousTask()
@@ -431,6 +410,12 @@ function QuestHelper:selectNextTask()
     end
 end
 
+function QuestHelper:setQuest(quest ,task, isCompleted)
+    self.currentQuest = quest
+    self.currentTask = task
+    self.isCompleted = isCompleted
+    self:updateDisplay()
+end
 
 function QuestHelper:clearCurrentQuest()
     self.currentQuest = nil

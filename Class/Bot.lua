@@ -5,9 +5,6 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local TaskManager = shared.ModuleLoader:load("NewBeeV2/Class/Task.lua")
 local TokenHelper = shared.ModuleLoader:load("NewBeeV2/Class/Token.lua")
 
--- Cache for task type data
-local taskTypeData = {}
-
 -- Bot Class
 local Bot = {}
 Bot.__index = Bot
@@ -418,10 +415,11 @@ function Bot:handleCollectingTask(taskData)
         timeout = 3,
         speed = shared.main.WalkSpeed,
         onBreak = function(breakFunc)
-            local conn = RunService.Heartbeat:Connect(function()
+            local conn
+            conn = RunService.Heartbeat:Connect(function()
                 local currentToken = self.tokenHelper:getBestNearbyToken(self.plr.rootPart.Position)
                 if currentToken and currentToken.instance and currentToken ~= targetToken then
-                    conn:Disconnect()
+                    if conn then conn:Disconnect() end
                     breakFunc()
                     task.spawn(function()
                         self:addTask({type = "collecting", priority = 5})
@@ -475,7 +473,7 @@ end
 function Bot:handleDoingQuest(taskData)
     local currentQuest = self.questHelper.currentQuest
     local currentTask = self.questHelper.currentTask
-    
+    -- print("start doing quest" , currentTask.Description)
     if not shared.main.autoQuest then
         warn("Auto quest is disabled")
         return true
@@ -486,43 +484,40 @@ function Bot:handleDoingQuest(taskData)
         return true
     end
     
-    if self.questHelper.isCompleted then
+    if self:shouldSubmitQuest() then
         warn("Quest is completed, skipping")
         return true
     end
-    
     self:setState(Bot.States.DO_QUEST)
-    self.currentField = self:determineQuestField(currentTask)
+    -- for questName , questData in pairs(self.questHelper.activeQuest) do
+    --     if not questData.canDo then continue end
+    --     for index, taskData in pairs(questData.Tasks) do
+    --         if taskData and taskData.Type == "Defeat Monsters" and taskData.progress[1] < 1 then
+    --             local canHunt, fieldName = shared.helper.Monster:canHuntMonster(taskData.MonsterType)
+    --             if canHunt and fieldName then
+    --                 print("start hunint in loop", taskData.MonsterType)
+    --                 self.questHelper:setQuest(questData, taskData)
+    --                 return self.taskManager:doHunting()
+    --             end
+    --         end
+    --     end
+    -- end
     
-    -- Handle collect pollen tasks
+
+    self.currentField = self:determineQuestField(currentTask)
     if currentTask.Type == "Collect Pollen" then
         return self.taskManager:doFarming()
     end
-    
-    -- Log task data
-    taskTypeData[currentTask.Type] = currentTask
-    local success, result = pcall(function()
-        writefile('taskType.json', HttpService:JSONEncode(taskTypeData))
-    end)
-    if not success then
-        warn("Failed to write task data: " .. tostring(result))
+
+    if currentTask.Type == "Defeat Monsters" then
+        return self.taskManager:doHunting()
     end
-    
-    -- Try next available task
-    local nextTask = self.questHelper:getNextAvailableTask()
-    if nextTask then
-        self.questHelper.currentTask = nextTask
-        self.questHelper:updateDisplay()
-        return false
-    end
-    
-    -- Try new quest
-    if currentQuest then
-        local questName = currentQuest.Name
-        self.questHelper:clearCurrentQuest()
-        self.questHelper:selectCurrentQuestAndTask(questName)
-        warn("No task available, trying new quest")
-    end
+
+
+    -- local nextQuest = self.questHelper:getAvailableTask()
+    -- if nextQuest then
+    --     return false
+    -- end
     
     self:setState(Bot.States.IDLE)
     return true
@@ -667,8 +662,13 @@ function Bot:shouldDoQuest()
        self:shouldCollectTokens() then
         return false
     end
-    
     local q = self.questHelper
+
+    if q.currentTask and q.currentTask.Type == "Defeat Monsters" then
+        local canHunt, fieldName = shared.helper.Monster:canHuntMonster(q.currentTask.MonsterType)
+        if not canHunt or not fieldName then return false end
+    end
+    
     return q.currentQuest and q.currentTask and not q.isCompleted
 end
 

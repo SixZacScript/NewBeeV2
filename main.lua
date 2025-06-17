@@ -31,6 +31,14 @@ shared.main = {
         amount = 1,
         foodType = "Treat",
         currentBee = nil
+    },
+    autoJelly = {
+        X = 1,
+        Y = 1,
+        selectedTypes = {},
+        selectedBees = {},
+        anyGifted = false,
+        isRunning = false,
     }
 }
 

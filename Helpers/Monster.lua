@@ -4,10 +4,10 @@ local MonstersFolder = WP:FindFirstChild("Monsters")
 local MonsterSpawnersFolder = WP:FindFirstChild("MonsterSpawners")
 local MonsterHelper = {}
 local spawnerKey = {
+    ["MushroomBush"] = "Mushroom Field",
     ["Ladybug Bush"] = "Clover Field",
     ["Ladybug Bush 2"] = "Strawberry Field",
     ["Ladybug Bush 3"] = "Strawberry Field",
-    ["MushroomBush"] = "Mushroom Field",
 
     ["PineappleBeetle"] = "Pineapple Patch",
     ["PineappleMantis1"] = "Pineapple Patch",
@@ -37,10 +37,19 @@ function MonsterHelper.new()
     local self = setmetatable({}, MonsterHelper)
     self.Monsters = {}
     self.connections = {} 
+    self.spawnerKey = spawnerKey
     self:setupListener()
     return self
 end
-
+function MonsterHelper:getMonsterByType(monsterType)
+    local monsters = {}
+    for index, monster in pairs(self.Monsters) do
+        if monster and monster.MonsterType and monster.MonsterType.Value == monsterType then
+            table.insert(monsters, monster)
+        end
+    end
+    return monsters
+end
 function MonsterHelper:checkMonsterForTarget(monster)
     if not self:playerValid() then return end
     
@@ -101,8 +110,35 @@ function MonsterHelper:getCloseMonsterCount(targetDistance)
     return count
 end
 
+
+
+function MonsterHelper:canHuntMonster(monsterName)
+    local spawner = {}
+    local canHuntMonster = {}
+    for _, part in ipairs(MonsterSpawnersFolder:GetChildren()) do
+        local hasMonsterType = part:FindFirstChild('MonsterType')
+        if not hasMonsterType then continue end
+        table.insert(spawner, part)
+    end
+
+    for _, spawnerPart in ipairs(spawner) do
+        local MonsterType = spawnerPart.MonsterType
+        if monsterName == MonsterType.Value then
+            local Attachment = spawnerPart:FindFirstChildWhichIsA('Attachment')
+            if Attachment then
+                local TimerGui = Attachment.TimerGui
+                local TimerLabel = TimerGui.TimerLabel
+                if not TimerLabel.Visible then
+                    table.insert(canHuntMonster, spawnerKey[spawnerPart.Name])
+                end
+            end
+        end
+    end
+    if #canHuntMonster > 0 then return true , canHuntMonster[1] end
+    return false, nil
+end
+
 function MonsterHelper:destroy()
-    -- Disconnect all connections
     if self.connections.folderChildAdded then
         self.connections.folderChildAdded:Disconnect()
     end
@@ -112,25 +148,9 @@ function MonsterHelper:destroy()
     if self.connections.trackingCoroutine then
         task.cancel(self.connections.trackingCoroutine)
     end
-    
+    self.spawnerKey = nil
     table.clear(self.Monsters)
     table.clear(self.connections)
-end
-
-function MonsterHelper:canHuntMonster(monsterName)
-    for _, part in ipairs(MonsterSpawnersFolder:GetChildren()) do
-        local hasMonsterType = part:FindFirstChild('MonsterType')
-        if not hasMonsterType then continue end
-        local isTargetMonster = monsterName == hasMonsterType.Value
-        if not isTargetMonster then continue end
-        local Attachment = part:FindFirstChildWhichIsA('Attachment')
-        if Attachment then
-            local TimerGui = Attachment.TimerGui
-            local TimerLabel = TimerGui.TimerLabel
-            return not TimerLabel.Visible, spawnerKey[part.Name]
-        end
-    end
-    return false, nil
 end
 
 return MonsterHelper

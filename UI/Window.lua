@@ -5,14 +5,15 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite
 local FluentLibrary = shared.ModuleLoader:load("NewBeeV2/UI/WindowLua.lua")
 local SaveManager = shared.ModuleLoader:load("NewBeeV2/UI/SaveManager.lua")
 local InterfaceManager = shared.ModuleLoader:load("NewBeeV2/UI/InterfaceManager.lua")
+local BeesModule = shared.ModuleLoader:load("NewBeeV2/Data/Bee.lua")
 
 local FluentUI = {}
 FluentUI.__index = FluentUI
 shared.FluentLib = FluentLibrary
 local DEFAULT_CONFIG = {
-    Title = "Bee Swarm",
+    Title = "Bee Swarm 1.0.0",
     SubTitle = "by SixZac",
-    TabWidth = 160,
+    TabWidth = 125,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
     Theme = "Darker",
@@ -252,13 +253,93 @@ end
 
 function FluentUI:initHiveTab()
     local hiveTab = self.Tabs.Hive
+    local bestFieldSection = hiveTab:AddSection("Auto jelly")
 
-    self.selectedBeeInfo = hiveTab:AddParagraph({
+    local function encodeSelection(data)
+        local selected = {}
+        for key in pairs(data) do
+            table.insert(selected, key)
+        end
+        return selected
+    end
+
+    local jellySelectedBee = bestFieldSection:AddDropdown("jellySelectedBee", {
+        Title = "Select Bees",
+        Values = BeesModule:getAllBees(),
+        Multi = true,
+        Default = {},
+    })
+    
+    jellySelectedBee:OnChanged(function(bees)
+        local selectedBees = encodeSelection(bees)
+        shared.main.autoJelly.selectedBees = selectedBees
+    end)
+
+    local jellySelectedRare = bestFieldSection:AddDropdown("jellySelectedRare", {
+        Title = "Select Rarities",
+        Values = BeesModule:getAllRarityTypes(),
+        Multi = true,
+        Default = {},
+    })
+
+    jellySelectedRare:OnChanged(function(types)
+        local selectedTypes = encodeSelection(types)
+        shared.main.autoJelly.selectedTypes = selectedTypes
+    end)
+
+    bestFieldSection:AddInput("jellyRowPos", {
+        Title = "Hive Row (X)",
+        Default = "1",
+        Placeholder = "Enter hive row (X)",
+        Numeric = true,
+        Finished = false,
+        Callback = function(X)
+            shared.main.autoJelly.X = X
+        end
+    })
+
+    bestFieldSection:AddInput("jellyColumnPos", {
+        Title = "Hive Column (Y)",
+        Default = "1",
+        Placeholder = "Enter hive column (Y)",
+        Numeric = true,
+        Finished = false,
+        Callback = function(Y)
+            shared.main.autoJelly.Y = Y
+           
+        end
+    })
+
+    self.jellyAnyGifted = bestFieldSection:AddToggle("jellyAnyGifted", {
+        Title = "Stop at Any Gifted Bee",
+        Default = false,
+        Callback = function(value)
+            shared.main.autoJelly.anyGifted = value
+        end
+    })
+
+    self.jellyStartButton = nil
+    self.jellyStartButton = bestFieldSection:AddButton({
+        Title = "Start",
+        Callback = function()
+            if shared.main.autoJelly.isRunning then
+                BeesModule:stopAutoJelly()
+                self.jellyStartButton:SetTitle("Start")
+            else
+                BeesModule:startAutoJelly()
+                self.jellyStartButton:SetTitle("Stop")
+            end
+        end
+    })
+
+
+    local beeToolsSection = hiveTab:AddSection("Bee Tools")
+    self.selectedBeeInfo = beeToolsSection:AddParagraph({
         Title = "Selected Bee",
         Content = "-"
     })
 
-    local rowPos = hiveTab:AddInput("rowPos", {
+    local rowPos = beeToolsSection:AddInput("rowPos", {
         Title = "Hive Row (X)",
         Default = "1",
         Placeholder = "Enter hive row (X)",
@@ -270,7 +351,7 @@ function FluentUI:initHiveTab()
         end
     })
 
-    local columnPos = hiveTab:AddInput("columnPos", {
+    local columnPos = beeToolsSection:AddInput("columnPos", {
         Title = "Hive Column (Y)",
         Default = "1",
         Placeholder = "Enter hive column (Y)",
@@ -282,7 +363,7 @@ function FluentUI:initHiveTab()
         end
     })
 
-    local feedAmount = hiveTab:AddInput("feedAmount", {
+    local feedAmount = beeToolsSection:AddInput("feedAmount", {
         Title = "Amount to Feed",
         Default = "1",
         Placeholder = "Enter amount",
@@ -293,7 +374,7 @@ function FluentUI:initHiveTab()
         end
     })
 
-    local foodType = hiveTab:AddDropdown("foodType", {
+    local foodType = beeToolsSection:AddDropdown("foodType", {
         Title = "Select Food Type",
         Values = {
             "Treat", "SunflowerSeed", "Strawberry", "Pineapple",
@@ -303,14 +384,14 @@ function FluentUI:initHiveTab()
         Default = 1,
     })
 
-    hiveTab:AddButton({
+    beeToolsSection:AddButton({
         Title = "Feed Bee",
         Description = "Click to feed the selected bee",
         Callback = function(Value)
             shared.helper.Bee:feedBee()
         end
     })
-    hiveTab:AddButton({
+    beeToolsSection:AddButton({
         Title = "🍪 Feed treat to Lowest Level Bee",
         Description = "Click to feed the lowest level bee",
         Callback = function()

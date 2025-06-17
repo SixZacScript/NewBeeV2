@@ -12,6 +12,8 @@ local Debris = game:GetService("Debris")
 function PlayerHelper.new()
     local self = setmetatable({}, PlayerHelper)
     self.player = Players.LocalPlayer
+    self.player.CameraMaxZoomDistance = 150
+    
 
     self.CoreStats = self.player:WaitForChild("CoreStats")
     self.Pollen = self.CoreStats:WaitForChild("Pollen").Value
@@ -243,13 +245,13 @@ function PlayerHelper:isPlayerInField(field)
     end
 
     local fieldCenter = Vector3.new(field.Position.X, 0, field.Position.Z)
-    local playerPos = Vector3.new(self.rootPart.Position.X, 0,
-                                  self.rootPart.Position.Z)
+    local playerPos = Vector3.new(self.rootPart.Position.X, 0, self.rootPart.Position.Z)
     local distance = (fieldCenter - playerPos).Magnitude
 
-    local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2
+    local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2 + 5 -- ขยายออก 5 stud
     return distance <= fieldRadius
 end
+
 
 function PlayerHelper:debugVisual(pos, color)
     local partColor = color or Color3.fromRGB(255, 0, 0)

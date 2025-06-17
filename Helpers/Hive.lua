@@ -250,41 +250,6 @@ function HiveHelper:getHive()
     return self.hive
 end
 
-function HiveHelper:saveBeesToJson()
-    local bees = self:getAllBees()
-    
-    -- Convert to JSON
-    local success, jsonString = pcall(function()
-        return HttpService:JSONEncode(bees)
-    end)
-    
-    if not success then
-        warn("Failed to encode bees data to JSON: " .. tostring(jsonString))
-        return false
-    end
-    
-    -- Save to file (method depends on your environment)
-    local success, result = pcall(function()
-        -- For Roblox Studio, you can use writefile (if supported)
-        if writefile then
-            writefile("bees_data.json", jsonString)
-            return true
-        else
-            -- For regular Roblox, you might need to use DataStoreService
-            -- or send to an external web service
-            warn("File writing not supported in this environment")
-            return false
-        end
-    end)
-    
-    if success and result then
-        print("Bees data saved to bees_data.json")
-        return true
-    else
-        warn("Failed to save bees data to file")
-        return false
-    end
-end
 function HiveHelper:waitUntilHiveClaimed(timeout)
     timeout = timeout or 10 
     local startTime = tick()
@@ -298,32 +263,19 @@ function HiveHelper:waitUntilHiveClaimed(timeout)
     return false
 end
 
-function HiveHelper:getBeeByLevel(honeycombData, typeOfSearch)
-    local targetBee = nil
-    local targetLevel = (typeOfSearch == "lowest") and math.huge or -math.huge
+function HiveHelper:getCellByXY(x, y)
+    if not self.CellsFolder then return nil end
 
-    for _, xCoords in pairs(honeycombData) do
-        for _, yCoords in pairs(xCoords) do
-            local bee = yCoords
-            if bee and bee.Lvl then
-                if typeOfSearch == "lowest" then
-                    if bee.Lvl < targetLevel then
-                        targetLevel = bee.Lvl
-                        targetBee = bee
-                    end
-                elseif typeOfSearch == "highest" then
-                    if bee.Lvl > targetLevel then
-                        targetLevel = bee.Lvl
-                        targetBee = bee
-                    end
-                else
-                    error("Invalid typeOfSearch. Use 'lowest' or 'highest'.")
-                end
-            end
-        end
+    local cellName = string.format("C%d,%d", x, y)
+    local cell = self.CellsFolder:FindFirstChild(cellName)
+
+    if cell then
+        return cell
+    else
+        return nil
     end
-    return targetBee
 end
+
 
 function HiveHelper:destroy()
     if self.isDestroyed then return end

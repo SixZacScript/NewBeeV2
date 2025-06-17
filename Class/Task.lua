@@ -43,21 +43,8 @@ function TaskManager:submitQuest(currentQuest)
         self.bot:setState(self.bot.States.FARMING)
         return false
     end
-
-    local nextQuest = currentQuest.NextQuest
-    local completeQuestEvent = game:GetService("ReplicatedStorage").Events.CompleteQuest
-    completeQuestEvent:FireServer(currentQuestName)
-    task.wait(1) 
-
-    if nextQuest then
-        local giveQuestEvent = game:GetService("ReplicatedStorage").Events.GiveQuest
-        giveQuestEvent:FireServer(nextQuest)
-        task.wait(1) 
-    end
     
-    
-    self.bot.questHelper:clearCurrentQuest()
-    self.bot.questHelper:selectCurrentQuestAndTask()
+    shared.helper.Quest:submitQuest(currentQuest)
     self.bot:setState(self.bot.States.IDLE)
     return true
 end
@@ -80,62 +67,67 @@ function TaskManager:returnToField(data)
     return coroutine.yield()
 end
 
-function TaskManager:getDistanceToMonster(monster)
-    if not monster or not monster.PrimaryPart or not self.bot.player:isValid() then
-        return nil
-    end
-    
-    local playerPosition = self.bot.player.rootPart.Position
-    local monsterPosition = monster.PrimaryPart.Position
-    
-    return (playerPosition - monsterPosition).Magnitude
-end
+function TaskManager:doHunting()
+    local currentTask = self.bot.questHelper.currentTask
+    local monsterType = currentTask.MonsterType
+    local canHunt, fieldName = shared.helper.Monster:canHuntMonster(monsterType)
 
-function TaskManager:avoidMonsterAsync(monster)
-    self.bot:setState(self.bot.States.AVOID_MONSTER)
+    if not canHunt or not fieldName then return true end
+    local fieldPart = shared.helper.Field:getField(fieldName)
+    self:returnToField({Position = fieldPart.Position, Player = self.bot.plr})
+    local monsterList = shared.helper.Monster:getMonsterByType(monsterType)
 
-    if not monster or not self.bot.player:isValid() then
-        self.bot:setState(self.bot.States.FARMING)
-        return false
-    end
+    repeat
+        monsterList = shared.helper.Monster:getMonsterByType(monsterType)
+        task.wait()
+    until #monsterList > 0
 
-    local character = self.bot.player.character
-    local humanoid = self.bot.player.humanoid
-    self.bot.plr:stopMoving()
-
-    local lastJumpTime = tick()
-    local jumpCooldown = 1.5
-
-    local function isMonsterValid(mon)
-        return mon and mon.Parent and mon.PrimaryPart
-    end
-    local isPlayerValid = function()
-        return self.bot.player:isValid()
-    end
-    while self.bot:isRunning() and isMonsterValid(monster) and isPlayerValid do
-        if shared.helper.Monster:getCloseMonsterCount(self.bot.monsterInRadius) <= 0 then
-            break
-        end
-        if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
-            local now = tick()
-            if now - lastJumpTime >= jumpCooldown then
-                humanoid.Jump = true
-                lastJumpTime = now
+    for index, value in pairs(monsterList) do
+        local targetMonster = monsterList[index]
+        repeat
+            if not targetMonster or not targetMonster:IsDescendantOf(workspace) then
+                break
             end
-        end
-        task.wait(0.1)
-    end
 
-    if not isMonsterValid(monster) then
-        while isPlayerValid and humanoid.FloorMaterial == Enum.Material.Air do
+            self.bot.plr.humanoid.Jump = true
+            task.wait(1.5)
+        until not targetMonster and not self.bot.plr:isValid()
+        
+    end
+    task.wait(.5)
+
+    local tokens = self.bot.tokenHelper:getTokensByField(fieldPart)
+    for _, token in ipairs(tokens) do
+        if token.instance and self.bot.plr:isValid() then
+            local humanoid = self.bot.plr.humanoid
+            if humanoid then
+                local conn
+                local reached = false
+                conn = humanoid.MoveToFinished:Connect(function()
+                    reached = true
+                end)
+
+                humanoid:MoveTo(token.position)
+
+                local startTime = tick()
+                while not reached and tick() - startTime < 5 do
+                    if not self.bot.plr:isValid() then
+                        if conn then conn:Disconnect() end
+                        return false
+                    end
+                    task.wait(0.1)
+                end
+
+                if conn then conn:Disconnect() end
+            end
             task.wait()
         end
     end
 
-    self.bot:setState(self.bot.States.FARMING)  
+    self.bot.questHelper:getAvailableTask()
+    self.bot:setState(self.bot.States.IDLE)
     return true
 end
-
 
 function TaskManager:doFarming()
     local player = self.bot.plr
@@ -199,46 +191,6 @@ function TaskManager:convertPollen()
 
         if bot:isRunning() then task.wait(5) end
         player:disableWalking(false)
-        coroutine.resume(thread, true)
-    end)
-
-    return coroutine.yield()
-end
-
-function TaskManager:handleKillingMonster(taskData, bot)
-    local thread = coroutine.running()
-    local targetMonster = taskData.MonsterType
-    local canHunt, fieldName = bot.monsterHelper:canHuntMonster(targetMonster)
-
-    -- If can't hunt now, try switching task
-    if not canHunt then 
-        local newTask = bot.questHelper:getNextAvailableTask()
-        if newTask then
-            bot.questHelper.currentTask = newTask
-            bot.questHelper:updateDisplay()
-        end
-        coroutine.resume(thread, false) 
-        return coroutine.yield()
-    end
-
-    local fieldPosition = bot.Field:getFieldPosition(fieldName)
-    print("change state to KILL_MONSTER")
-    bot:setState(bot.States.KILL_MONSTER)
-    print("chaded state : ",bot.currentState)
-
-    bot.player:tweenTo(fieldPosition, 1, function()
-        task.wait(0.5)
-        local player = bot.player
-        local humanoid = player.humanoid
-
-        while bot.isStart and player:isValid() and bot.monsterHelper:canHuntMonster(targetMonster) do
-            task.wait(1)
-            if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
-                humanoid.Jump = true
-            end
-        end
-
-        bot:revertToLastState()
         coroutine.resume(thread, true)
     end)
 

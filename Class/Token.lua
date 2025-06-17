@@ -34,9 +34,10 @@ local CONFIG = {
         VISUALIZATION_LIFETIME = 15,
         HIGH_PRIORITY_THRESHOLD = 80,
         MAX_RETRY_ATTEMPTS = 3,
-        CLEANUP_DELAY = 2,
+        CLEANUP_DELAY = 1,
         SELECTION_BOX_THICKNESS = 0.05,
-        SELECTION_BOX_TRANSPARENCY = 0.5,
+        SELECTION_BOX_TRANSPARENCY = 1,
+        SIMPART_TRANSPARENCY = 1,
         AUTO_CLEANUP_INTERVAL = 30, -- seconds
     },
     
@@ -100,7 +101,6 @@ function Token.new(id, name, instance, priority, isSkill, position)
         spawnTime = tick(),
         maxTry = CONFIG.TOKEN.MAX_RETRY_ATTEMPTS,
         currentTry = 0,
-        tokenField = shared.Bot.currentField or nil,
         _connections = {},
         _cleanupScheduled = false,
     }, Token)
@@ -123,6 +123,7 @@ function Token:_setupSelectionBox()
     box.SurfaceColor3 = CONFIG.COLORS.GREEN
     box.Color3 = CONFIG.COLORS.GREEN
     box.SurfaceTransparency = CONFIG.TOKEN.SELECTION_BOX_TRANSPARENCY
+    box.Transparency = CONFIG.TOKEN.SELECTION_BOX_TRANSPARENCY
     box.Parent = self.instance
     
     self.selectionBox = box
@@ -189,7 +190,7 @@ function Token:cleanup()
 end
 
 function Token:isValid()
-    return self.instance and self.instance.Parent and not self.touched
+    return self.instance and self.instance.Parent and not self.touched and self.tokenField == shared.Bot.currentField
 end
 
 
@@ -227,6 +228,19 @@ function TokenHelper:_loadConfig()
             self:_mergeConfig(CONFIG, userConfig)
         end
     end
+end
+
+function TokenHelper:getTokensByField(field)
+    if not field  then return {} end
+
+    local tokensInField = {}
+    for _, token in pairs(self.activeTokens) do
+        if token.tokenField == field then
+            table.insert(tokensInField, token)
+        end
+    end
+
+    return tokensInField
 end
 
 function TokenHelper:_mergeConfig(base, override)
@@ -292,7 +306,7 @@ function TokenHelper:createSimPart(position, color, name)
     simToken.CanTouch = true
     simToken.Shape = isBubble and Enum.PartType.Ball or Enum.PartType.Ball 
     simToken.CanCollide = false
-    simToken.Transparency = 0.5
+    simToken.Transparency = CONFIG.TOKEN.SIMPART_TRANSPARENCY
     simToken.Name = name or "Token"
     simToken.Parent = CollectiblesDisplayFolder
     return simToken
@@ -328,7 +342,7 @@ function TokenHelper:_handleBubbleSpawn(data)
     local position = data.Pos
     local serverID = data.ID
     
-    if not self:isInBounds(position) then return end
+    if not self:isPositionInBounds(position, shared.Bot.currentField) then return end
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
     local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "Bubble")
@@ -373,7 +387,6 @@ function TokenHelper:_handleTokenSpawn(tokenParams)
     local icon = tokenParams.Icon
     local duration = tokenParams.Dur
     
-    if not self:isInBounds(position) then return end
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
     local assetID = self:extractAssetID(icon)
@@ -388,7 +401,14 @@ function TokenHelper:_handleTokenSpawn(tokenParams)
         tokenData.isSkill,
         position
     )
-    
+    local allFieldParts = shared.helper.Field:getAllFieldParts()
+    for index, fieldPart in pairs(allFieldParts) do
+        local isInBound = self:isPositionInBounds(position, fieldPart)
+        if isInBound then
+            gameToken.tokenField = fieldPart
+        end
+    end
+
     task.delay(duration, function()
         self:removeToken(serverID)
     end)
@@ -503,12 +523,6 @@ function TokenHelper:calculateSmartTokenScore(tokenData, playerRoot)
     end
     
     return score
-end
-
-function TokenHelper:isInBounds(position)
-    local field = shared.Bot.currentField
-    if not field then return false end
-    return self:isPositionInBounds(position, field)
 end
 
 function TokenHelper:extractAssetID(url)

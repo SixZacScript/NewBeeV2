@@ -1,3 +1,29 @@
+local HttpService = game:GetService("HttpService")
+
+local function safePrintTable(tbl, indent, seen)
+    indent = indent or 0
+    seen = seen or {}
+
+    if seen[tbl] then
+        print(string.rep("  ", indent) .. "*Cyclic Reference*")
+        return
+    end
+
+    seen[tbl] = true
+
+    for k, v in pairs(tbl) do
+        local key = tostring(k)
+        if type(v) == "table" then
+            print(string.rep("  ", indent) .. key .. " = {")
+            safePrintTable(v, indent + 1, seen)
+            print(string.rep("  ", indent) .. "}")
+        else
+            print(string.rep("  ", indent) .. key .. " = " .. tostring(v))
+        end
+    end
+end
+
+
 local a, b = {
     {
         1, 'ModuleScript', {'MainModule'}, {
@@ -206,7 +232,9 @@ local aa = {
                     D and 0.35 or 0
             end
         end
-        function x.Notify(C, D) return t:New(D) end
+        function x.Notify(C, D)
+            return t:New(D)
+        end
         if getgenv then getgenv().Fluent = x end
         return x
     end,
@@ -2237,7 +2265,9 @@ local aa = {
             w()
             y()
             c.AddSignal(p:GetPropertyChangedSignal 'AbsolutePosition', w)
-            c.AddSignal(p.MouseButton1Click, function() l:Open() end)
+            c.AddSignal(p.MouseButton1Click, function()
+                l:Open()
+            end)
             c.AddSignal(ag.InputBegan, function(A)
                 if A.UserInputType == Enum.UserInputType.MouseButton1 or
                     A.UserInputType == Enum.UserInputType.Touch then
@@ -2345,6 +2375,10 @@ local aa = {
                         P(N and 0.89 or 1)
                     end)
                     c.AddSignal(M.MouseButton1Down, function()
+                        -- On Option Clicked
+                        if not j.Multi then 
+                            l.Close()
+                        end
                         P(0.92)
                     end)
                     c.AddSignal(M.MouseButton1Up,

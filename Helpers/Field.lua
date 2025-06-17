@@ -78,6 +78,17 @@ function FieldHelper:getField(fieldName)
     return FlowerZones:FindFirstChild(fieldName or self.currentField)
 end
 
+function FieldHelper:getAllFieldParts()
+    local parts = {}
+    for _, field in ipairs(self.fieldOrder) do
+        local part = self:getField(field.name)
+        if part then
+            parts[#parts + 1] = part
+        end
+    end
+    return parts
+end
+
 function FieldHelper:getFieldPosition(fieldName)
     local field = self:getField(fieldName)
     return field and (field.Position + Vector3.new(0, 4, 0)) or Vector3.new()
