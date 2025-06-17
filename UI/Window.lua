@@ -77,18 +77,28 @@ end
 function FluentUI:initMainTab()
 
     self.FieldDropdown = self.Tabs.Main:AddDropdown("FieldDropdown", {
-        Title = "Select Field",
+        Title = "🌾 Select Field",
         Values = shared.helper.Field:getAllFieldDisplayNames(),
         Multi = false,
         Default = 1,
     })
+
     self.autoFarmToggle = self.Tabs.Main:AddToggle("autoFarm", {
-        Title = "Auto Farm",
+        Title = "🤖 Auto Farm",
         Default = false
     })
+
     self.autoDig = self.Tabs.Main:AddToggle("autoDig", {
-        Title = "Auto Dig",
+        Title = "⛏️ Auto Dig",
         Default = false
+    })
+
+    self.ignoreHoneyToken = self.Tabs.Main:AddToggle("ignoreHoneyToken", {
+        Title = "🍯 Ignore Honey Tokens",
+        Default = shared.main.ignoreHoneyToken,
+        Callback = function(val)
+            shared.main.ignoreHoneyToken = val
+        end
     })
 
     local StaticsSection = self.Tabs.Main:AddSection("Statistics")

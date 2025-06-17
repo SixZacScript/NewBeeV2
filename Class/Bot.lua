@@ -409,32 +409,36 @@ end
 
 function Bot:handleCollectingTask(taskData)
     if not self.token or not self.token.instance then return true end
-    
+
     self:setState(Bot.States.COLLECTING)
     local targetToken = self.token
-    
-    local success = self:moveTo(targetToken.position, {
+
+    local reached = self:moveTo(targetToken.position, {
         timeout = 3,
         speed = shared.main.WalkSpeed,
-        onBreak = function(breakFunc)
-            local conn
-            conn = RunService.Heartbeat:Connect(function()
-                local currentToken = self.tokenHelper:getBestNearbyToken(self.plr.rootPart.Position)
-                if currentToken and currentToken.instance and currentToken ~= targetToken then
-                    if conn then conn:Disconnect() end
-                    breakFunc()
-                    task.spawn(function()
-                        self:addTask({type = "collecting", priority = 5})
-                    end)
-                end
-            end)
-            return conn
-        end
     })
-    
+
+    while self.isStart do
+        local currentToken = self.tokenHelper:getBestNearbyToken(self.plr.rootPart.Position)
+
+        -- ถ้า token เปลี่ยน
+        if currentToken and currentToken.instance and currentToken ~= targetToken then
+            self.token = currentToken -- ตั้งใหม่ แล้วให้ bot ไปจัดการเอง
+            break
+        end
+
+        -- ถ้าเดินถึงเป้าหมายหรือหมดเวลา
+        if reached then break end
+
+        task.wait()
+    end
+
     self:returnToLastState()
     return true
 end
+
+
+
 
 function Bot:handleConvertingTask(taskData)
     self:setState(Bot.States.CONVERTING)

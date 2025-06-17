@@ -34,6 +34,7 @@ shared.main = {
     defaultJumpPower = 50,
     autoQuest = false,
     autoDig = false,
+    ignoreHoneyToken = false,
     
     statusText = GUIHelper:createStatus(),
     Equip = {

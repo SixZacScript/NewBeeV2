@@ -361,34 +361,37 @@ function QuestHelper:getAvailableTask()
     local allActiveQuests = self:getActiveQuest()
     if not allActiveQuests then return false end
 
-    -- First, look for "Defeat Monsters" tasks
+    local fallbackTask = nil
+
     for _, questData in pairs(allActiveQuests) do
         if not questData.canDo then continue end
+
         for _, taskData in pairs(questData.Tasks or {}) do
-            if taskData.Type == "Defeat Monsters" and taskData.progress[1] < 1 then
-                local canhunt = shared.helper.Monster:canHuntMonster(taskData.MonsterType)
-                if canhunt then
+            if taskData.progress[1] >= 1 then continue end
+
+            if taskData.Type == "Defeat Monsters" then
+                local canHunt = shared.helper.Monster:canHuntMonster(taskData.MonsterType)
+                if canHunt then
                     self:setQuest(questData, taskData)
                     return questData
+                elseif not fallbackTask then
+                    fallbackTask = {quest = questData, task = taskData}
                 end
-            end
-        end
-    end
-
-    -- If none found, look for "Collect Pollen" tasks
-    for _, questData in pairs(allActiveQuests) do
-        if not questData.canDo then continue end
-        for _, taskData in pairs(questData.Tasks or {}) do
-            if taskData.Type == "Collect Pollen" and taskData.progress[1] < 1 then
+            elseif taskData.Type == "Collect Pollen" then
                 self:setQuest(questData, taskData)
                 return questData
             end
         end
     end
 
+    if fallbackTask then
+        self:setQuest(fallbackTask.quest, fallbackTask.task)
+        return fallbackTask.quest
+    end
 
     return false
 end
+
 
 
 

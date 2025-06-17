@@ -391,7 +391,7 @@ function TokenHelper:_handleTokenSpawn(tokenParams)
     
     local assetID = self:extractAssetID(icon)
     local name, tokenData = TokenDataModule:getTokenById(assetID)
-    
+
     local simPart = self:createSimPart(position, color, name)
     local gameToken = Token.new(
         tokenData.id,
@@ -500,6 +500,11 @@ function TokenHelper:getBestNearbyToken()
 end
 
 function TokenHelper:isTokenCollectable(tokenData)
+    -- ingore honey token if it's enabled
+    if shared.main.ignoreHoneyToken and tokenData.id == 1472135114 then
+        return false
+    end
+
     return tokenData and tokenData:isValid()
 end
 

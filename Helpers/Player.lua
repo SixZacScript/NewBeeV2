@@ -249,7 +249,7 @@ function PlayerHelper:isPlayerInField(field)
     local playerPos = Vector3.new(self.rootPart.Position.X, 0, self.rootPart.Position.Z)
     local distance = (fieldCenter - playerPos).Magnitude
 
-    local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2 + 5 -- ขยายออก 5 stud
+    local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2 + 5 
     return distance <= fieldRadius
 end
 

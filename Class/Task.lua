@@ -72,7 +72,10 @@ function TaskManager:doHunting()
     local monsterType = currentTask.MonsterType
     local canHunt, fieldName = shared.helper.Monster:canHuntMonster(monsterType)
 
-    if not canHunt or not fieldName then return true end
+    if not canHunt or not fieldName then 
+        self.bot:setState(self.bot.States.FARMING)
+        return true
+    end
     local fieldPart = shared.helper.Field:getField(fieldName)
     self:returnToField({Position = fieldPart.Position, Player = self.bot.plr})
     local monsterList = shared.helper.Monster:getMonsterByType(monsterType)
