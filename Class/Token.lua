@@ -1,4 +1,4 @@
-local TokenDataModule = shared.ModuleLoader:load("NewBeeV2/Data/Tokens.lua")
+local TokenDataModule = shared.ModuleLoader:load(_G.URL.."/Data/Tokens.lua")
 local HttpService = game:GetService("HttpService")
 local Rep = game:GetService("ReplicatedStorage")
 local Events = Rep.Events

@@ -2,10 +2,10 @@ local HttpService = game:GetService('HttpService')
 local WP = game:GetService('Workspace')
 local BalloonsFolder  = WP:FindFirstChild("Balloons")
 loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
-local FluentLibrary = shared.ModuleLoader:load("NewBeeV2/UI/WindowLua.lua")
-local SaveManager = shared.ModuleLoader:load("NewBeeV2/UI/SaveManager.lua")
-local InterfaceManager = shared.ModuleLoader:load("NewBeeV2/UI/InterfaceManager.lua")
-local BeesModule = shared.ModuleLoader:load("NewBeeV2/Data/Bee.lua")
+local FluentLibrary = shared.ModuleLoader:load(_G.URL.."/UI/WindowLua.lua")
+local SaveManager = shared.ModuleLoader:load(_G.URL.."/UI/SaveManager.lua")
+local InterfaceManager = shared.ModuleLoader:load(_G.URL.."/UI/InterfaceManager.lua")
+local BeesModule = shared.ModuleLoader:load(_G.URL.."/Data/Bee.lua")
 
 local FluentUI = {}
 FluentUI.__index = FluentUI

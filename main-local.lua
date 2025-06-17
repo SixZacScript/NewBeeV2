@@ -1,12 +1,11 @@
-local HttpService = game:GetService("HttpService")
 _G.URL = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/refs/heads/master/"
-shared.ModuleLoader = loadstring(HttpService:HttpGet(_G.URL..'/Helpers/ModuleLoader.lua'))()
-local GUIHelperModule = shared.ModuleLoader:load(_G.URL.."/Class/GUI.lua")
-local PlayerModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Player.lua")
-local MonsterModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Monster.lua")
-local FieldModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Field.lua")
-local NPCsModule = shared.ModuleLoader:load(_G.URL.."/Data/NPCs.lua")
-local BeeModule = shared.ModuleLoader:load(_G.URL.."/Class/Bee.lua")
+shared.ModuleLoader = loadstring(readfile('NewBeeV2/Helpers/ModuleLoader.lua'))()
+local GUIHelperModule = shared.ModuleLoader:load("NewBeeV2/Class/GUI.lua")
+local PlayerModule = shared.ModuleLoader:load("NewBeeV2/Helpers/Player.lua")
+local MonsterModule = shared.ModuleLoader:load("NewBeeV2/Helpers/Monster.lua")
+local FieldModule = shared.ModuleLoader:load("NewBeeV2/Helpers/Field.lua")
+local NPCsModule = shared.ModuleLoader:load("NewBeeV2/Data/NPCs.lua")
+local BeeModule = shared.ModuleLoader:load("NewBeeV2/Class/Bee.lua")
 local GUIHelper = GUIHelperModule.new()
 GUIHelper:createQuestInfo({
     title = "📜 No active quest",
@@ -55,11 +54,11 @@ shared.helper = {
 }
 
 -- Load modules
-shared.TokenDataModule = shared.ModuleLoader:load(_G.URL.."/Data/Tokens.lua")
-local QuestHelper = shared.ModuleLoader:load(_G.URL.."/Class/Quest.lua")
-local FluentModule = shared.ModuleLoader:load(_G.URL.."/UI/Window.lua")
-local HiveModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Hive.lua")
-local BotModule = shared.ModuleLoader:load(_G.URL.."/Class/Bot.lua")
+shared.TokenDataModule = shared.ModuleLoader:load("NewBeeV2/Data/Tokens.lua")
+local QuestHelper = shared.ModuleLoader:load("NewBeeV2/Class/Quest.lua")
+local FluentModule = shared.ModuleLoader:load("NewBeeV2/UI/Window.lua")
+local HiveModule = shared.ModuleLoader:load("NewBeeV2/Helpers/Hive.lua")
+local BotModule = shared.ModuleLoader:load("NewBeeV2/Class/Bot.lua")
 shared.Fluent = FluentModule.new()
 shared.helper.Hive = HiveModule.new()
 shared.helper.Quest = QuestHelper.new() 

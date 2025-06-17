@@ -2,8 +2,8 @@
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local TaskManager = shared.ModuleLoader:load("NewBeeV2/Class/Task.lua")
-local TokenHelper = shared.ModuleLoader:load("NewBeeV2/Class/Token.lua")
+local TaskManager = shared.ModuleLoader:load(_G.URL.."/Class/Task.lua")
+local TokenHelper = shared.ModuleLoader:load(_G.URL.."/Class/Token.lua")
 
 -- Bot Class
 local Bot = {}

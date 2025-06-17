@@ -1,4 +1,5 @@
 -- ModuleLoaderHelper.lua
+local url = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/refs/heads/master/"
 
 local ModuleLoaderHelper = {}
 local loadedModules = {}
@@ -24,7 +25,6 @@ end
 function ModuleLoaderHelper:destroyAll()
     for path, module in pairs(loadedModules) do
         if module and typeof(module.destroy) == "function" then
-            print("has" , path)
             pcall(function() module:destroy() end)
         end
         loadedModules[path] = nil
