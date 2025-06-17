@@ -1,6 +1,3 @@
--- ModuleLoaderHelper.lua
-local url = "https://raw.githubusercontent.com/SixZacScript/NewBeeV2/refs/heads/master/"
-
 local ModuleLoaderHelper = {}
 local loadedModules = {}
 
@@ -14,7 +11,7 @@ end
 
 function ModuleLoaderHelper:load(path)
     self:destroy(path)
-    loadedModules[path] = loadstring(readfile(path))()
+    loadedModules[path] = loadstring(game:HttpGet(path))()
     return loadedModules[path]
 end
 
