@@ -242,9 +242,9 @@ function QuestHelper:startCollectionRateUpdater()
                 shared.Fluent.PollenInfo:SetDesc(string.format(
                     "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s",
                     shared.TokenDataModule:formatNumber(pollenPerSec, 2),
-                    shared.TokenDataModule:formatNumber(pollenPerHour),
-                    shared.TokenDataModule:formatNumber(pollenPerDay),
-                    shared.TokenDataModule:formatNumber(stats.totalCollectedPollen)
+                    shared.TokenDataModule:formatNumber(pollenPerHour, 2),
+                    shared.TokenDataModule:formatNumber(pollenPerDay, 2),
+                    shared.TokenDataModule:formatNumber(stats.totalCollectedPollen, 2)
                 ))
             end
 
@@ -257,9 +257,9 @@ function QuestHelper:startCollectionRateUpdater()
                 shared.Fluent.HoneyInfo:SetDesc(string.format(
                     "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s",
                     shared.TokenDataModule:formatNumber(honeyPerSec, 2),
-                    shared.TokenDataModule:formatNumber(honeyPerHour),
-                    shared.TokenDataModule:formatNumber(honeyPerDay),
-                    shared.TokenDataModule:formatNumber(stats.totalConvertHoney)
+                    shared.TokenDataModule:formatNumber(honeyPerHour, 2),
+                    shared.TokenDataModule:formatNumber(honeyPerDay, 2),
+                    shared.TokenDataModule:formatNumber(stats.totalConvertHoney, 2)
                 ))
             end
         end
