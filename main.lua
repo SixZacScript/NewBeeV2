@@ -34,7 +34,12 @@ shared.main = {
     defaultJumpPower = 50,
     autoQuest = false,
     autoDig = false,
+    
     statusText = GUIHelper:createStatus(),
+    Equip = {
+        autoHooneyMask = false,
+        defaultMask = nil,
+    },
     BeeTab = {
         row = 1,
         column = 1,

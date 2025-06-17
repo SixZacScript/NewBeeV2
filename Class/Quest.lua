@@ -290,47 +290,61 @@ function QuestHelper:onMonsterEvent(data)
 end
 function QuestHelper:onServerGiveEvent(eventType, data)
     local success, result = xpcall(function()
-
+        -- Early exit for non-Give events
+        if eventType ~= "Give" then return end
+        
+        local category = data.C
+        local amount = data.A
+        
         -- Handle Honey conversion
-        if eventType == "Give" and data.C == "Honey" then
-            self.collectedStatics.totalConvertHoney += data.A
+        if category == "Honey" then
+            self.collectedStatics.totalConvertHoney += amount
             return
         end
 
-        -- Only process Pollen events for the current quest
-        if eventType ~= "Give" or not self.currentQuest or data.C ~= "Pollen" then return end
+        -- Handle Collect Pollen statistics
+        if category == "Pollen" then
+            local pollenRealAmount = data.R or amount
+            self.collectedStatics.totalCollectedPollen += pollenRealAmount
 
-        local PollenRealAmount = data.R or data.A
-        local PollenZone = data.Z
-        local PollenColor = data.L
+        end
 
-        if typeof(PollenRealAmount) ~= "number" then return end
-        self.collectedStatics.totalCollectedPollen += PollenRealAmount
+        -- Process Pollen events for current quest only
+        if category ~= "Pollen" or not self.currentQuest then return end
+
+        local pollenRealAmount = data.R or amount
+        if typeof(pollenRealAmount) ~= "number" then return end
+        
+        local pollenZone = data.Z
+        local pollenColor = data.L
         local allTasks = self.currentQuest.Tasks
         local allCompleted = true
 
         for _, taskData in pairs(allTasks) do
             if taskData.Type == "Collect Pollen" then
-                local matchZone = taskData.Zone and PollenZone == taskData.Zone
-                local matchColor = taskData.Color and PollenColor == taskData.Color
+                -- Check if pollen matches task requirements
+                local matchZone = taskData.Zone and pollenZone == taskData.Zone
+                local matchColor = taskData.Color and pollenColor == taskData.Color
                 local noSpecifics = not taskData.Zone and not taskData.Color
 
                 if matchZone or matchColor or noSpecifics then
-                    taskData.progress[2] = math.min(taskData.progress[2] + PollenRealAmount, taskData.progress[3])
-                    taskData.progress[1] = math.min(taskData.progress[2] / taskData.progress[3], 1.0)
+                    local currentProgress = taskData.progress[2]
+                    local maxProgress = taskData.progress[3]
+                    taskData.progress[2] = math.min(currentProgress + pollenRealAmount, maxProgress)
+                    taskData.progress[1] = taskData.progress[2] / maxProgress
                 end
             end
 
+            -- Check completion status
             if taskData.progress[1] < 1 then
                 allCompleted = false
             end
         end
 
-        -- Update quest completion status
         self.isCompleted = allCompleted
 
-        -- Move to next task if current is done
-        if self.currentTask and self.currentTask.progress[1] >= 1 and not self.isCompleted then
+        -- Handle task progression
+        if self.currentTask and self.currentTask.progress[1] >= 1 and not allCompleted then
             print("current task completed, finding next quest")
             self:getAvailableTask()
         end

@@ -169,7 +169,10 @@ function TaskManager:convertPollen()
     local player = self.bot.plr
     local thread = coroutine.running()
     local bot = self.bot
-    player:equipMask("Honey Mask")
+    if shared.main.Equip.autoHoneyMask then
+        player:equipMask("Honey Mask")
+    end
+    
     player:tweenTo(self.hive:getHivePosition(), 1, function()
         if not bot:isRunning() then 
             warn("bot is not running")

@@ -1,3 +1,4 @@
+local HttpService = game:GetService('HttpService')
 local WP = game:GetService('Workspace')
 local BalloonsFolder  = WP:FindFirstChild("Balloons")
 loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
@@ -89,6 +90,16 @@ function FluentUI:initMainTab()
         Title = "Auto Dig",
         Default = false
     })
+    
+    self.autoHoneyMask = self.Tabs.Main:AddToggle("autoHoneyMask", {
+        Title = "Auto Honey Mask",
+        Description = "Automatically equip Honey Mask when converting",
+        Default = shared.main.Equip.autoHoneyMask,
+        Callback = function(val)
+            shared.main.Equip.autoHoneyMask = val
+        end
+    })
+
 
     self.PollenInfo = self.Tabs.Main:AddParagraph({
         Title = "🌾 Pollen Collection",
@@ -141,6 +152,15 @@ function FluentUI:initMainTab()
 end
 
 function FluentUI:initPlayerTab()
+    self.defaultMask = self.Tabs.Player:AddDropdown("defaultMask", {
+        Title = "Default mask",
+        Values = shared.helper.Player:getPlayerMasks(),
+        Multi = false,
+        Callback = function(mask)
+            shared.main.Equip.defaultMask = mask
+        end
+    })
+
     self.walkSpeedSlider = self.Tabs.Player:AddSlider("WalkSpeedSlider", {
         Title = "WalkSpeed",
         Description = "Adjust player walk speed",

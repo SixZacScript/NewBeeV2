@@ -22,6 +22,7 @@ function PlayerHelper.new()
     self.Honeycomb = {}
     self.plrStats = {}
 
+    self:getPlayerStats()
     self:_updateCharacter()
 
     self._characterConnection = self.player.CharacterAdded:Connect(function()
@@ -317,12 +318,13 @@ function PlayerHelper:debugVisual(pos, color)
     return part
 end
 function PlayerHelper:equipMask(mask)
-    if not mask then mask = self.plrStats.EquippedAccessories.Hat end
-    if table.find(self.plrStats.Accessories, mask) then
+    if not mask and shared.main.Equip.defaultMask then mask = shared.main.Equip.defaultMask end
+    if table.find(self.plrStats.Accessories, mask) and mask then
         local Event = game:GetService("ReplicatedStorage").Events.ItemPackageEvent
         Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
     end
 end
+
 function PlayerHelper:getPlayerStats()
     local success, plrStats = pcall(function()
         local RetrievePlayerStats = Rep.Events.RetrievePlayerStats
@@ -334,10 +336,51 @@ function PlayerHelper:getPlayerStats()
     end
     self.plrStats = plrStats
     self.Honeycomb = plrStats.Honeycomb
-    self.lastHat = self.plrStats.EquippedAccessories.Hat or nil
+    self.Accessories = plrStats.Accessories or {}
 
     writefile("playerStats.json", HttpService:JSONEncode(plrStats))
     return self.plrStats
+end
+
+function PlayerHelper:getPlayerMasks()
+    local masks = {
+        "Helmet", "Propeller Hat", "Beekeeper's Mask",
+        "Bubble Mask", "Fire Mask", "Honey Mask",
+        "Diamond Mask", "Gummy Mask", "Demon Mask"
+    }
+
+    local playerMasks = {}
+
+    if not self or type(self) ~= "table" or not self.Accessories then
+        warn("PlayerHelper:getPlayerMasks - self.Accessories is nil or invalid")
+        return playerMasks
+    end
+
+    for _, mask in pairs(self.Accessories) do
+        if typeof(mask) == "string" and table.find(masks, mask) then
+            table.insert(playerMasks, mask)
+        end
+    end
+
+    return playerMasks
+end
+
+function PlayerHelper:getMaskIndex(maskName)
+    local playerMasks = self:getPlayerMasks()
+    for i, name in ipairs(playerMasks) do
+        if name == maskName then
+            return i
+        end
+    end
+    return nil 
+end
+
+function PlayerHelper:getEqupipedMask()
+    local plrStats = self:getPlayerStats()
+    local EquippedAccessories = plrStats.EquippedAccessories
+
+    return EquippedAccessories.Hat
+    
 end
 
 function PlayerHelper:destroy()
