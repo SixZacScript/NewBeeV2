@@ -66,6 +66,8 @@ shared.helper.Quest = QuestHelper.new()
 shared.Bot = BotModule.new()
 
 -- intial hive after all
+
+shared.ModuleLoader:waitForLoad(18)
 shared.main.Hive = shared.helper.Hive:initHive()
 
 
