@@ -143,10 +143,10 @@ function BeeModule:startAutoJelly()
             if autoJelly.X ~= X or autoJelly.Y ~= Y then 
                 return self:stopAutoJelly("Cell changed while auto jelly was running.") 
             end
-            local startTime = tick()
-            local jellyCount = self:doJelly(X, Y)
-            local endTime = tick()
-            print(string.format("doJelly execution time: %.3f seconds", endTime - startTime))
+            -- local startTime = tick()
+            self:doJelly(X, Y)
+            -- local endTime = tick()
+            -- print(string.format("doJelly execution time: %.3f seconds", endTime - startTime))
 
             task.wait(0.1)
             
