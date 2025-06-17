@@ -90,27 +90,18 @@ function FluentUI:initMainTab()
         Title = "Auto Dig",
         Default = false
     })
-    
-    self.autoHoneyMask = self.Tabs.Main:AddToggle("autoHoneyMask", {
-        Title = "Auto Honey Mask",
-        Description = "Automatically equip Honey Mask when converting",
-        Default = shared.main.Equip.autoHoneyMask,
-        Callback = function(val)
-            shared.main.Equip.autoHoneyMask = val
-        end
-    })
 
-
-    self.PollenInfo = self.Tabs.Main:AddParagraph({
+    local StaticsSection = self.Tabs.Main:AddSection("Statistics")
+    self.PollenInfo = StaticsSection:AddParagraph({
         Title = "🌾 Pollen Collection",
         Content = "Rate/sec: 0\nHourly: 0\nDaily: 0\nTotal: 0"
     })
 
-    self.HoneyInfo = self.Tabs.Main:AddParagraph({
+    self.HoneyInfo = StaticsSection:AddParagraph({
         Title = "🍯 Honey Production",
         Content = "Rate/sec: 0\nHourly: 0\nDaily: 0\nTotal: 0"
     })
-    self.sessionTimeInfo = self.Tabs.Main:AddParagraph({
+    self.sessionTimeInfo = StaticsSection:AddParagraph({
         Title = "⏱️ Session Time",
         Content = "00:00:00"
     })
@@ -152,7 +143,16 @@ function FluentUI:initMainTab()
 end
 
 function FluentUI:initPlayerTab()
-    self.defaultMask = self.Tabs.Player:AddDropdown("defaultMask", {
+    local EquipmentSection = self.Tabs.Player:AddSection("Equipment")
+    self.autoHoneyMask = EquipmentSection:AddToggle("autoHoneyMask", {
+        Title = "Auto Honey Mask",
+        Description = "Automatically equip Honey Mask when converting",
+        Default = shared.main.Equip.autoHoneyMask,
+        Callback = function(val)
+            shared.main.Equip.autoHoneyMask = val
+        end
+    })
+    self.defaultMask = EquipmentSection:AddDropdown("defaultMask", {
         Title = "Default mask",
         Values = shared.helper.Player:getPlayerMasks(),
         Multi = false,
@@ -161,7 +161,8 @@ function FluentUI:initPlayerTab()
         end
     })
 
-    self.walkSpeedSlider = self.Tabs.Player:AddSlider("WalkSpeedSlider", {
+    local MovementSection = self.Tabs.Player:AddSection("Movement")
+    self.walkSpeedSlider = MovementSection:AddSlider("WalkSpeedSlider", {
         Title = "WalkSpeed",
         Description = "Adjust player walk speed",
         Default = shared.main.WalkSpeed,
@@ -174,7 +175,7 @@ function FluentUI:initPlayerTab()
         end
     })
 
-    self.jumpPowerSlider = self.Tabs.Player:AddSlider("JumpPowerSlider", {
+    self.jumpPowerSlider = MovementSection:AddSlider("JumpPowerSlider", {
         Title = "JumpPower",
         Description = "Adjust player jump power",
         Default = shared.main.JumpPower,
@@ -186,7 +187,9 @@ function FluentUI:initPlayerTab()
             if shared.helper.Player then shared.helper.Player:updateStats() end
         end
     })
-    self.Tabs.Player:AddKeybind("BackToHiveBind", {
+    
+    local KeyBinds = self.Tabs.Player:AddSection("Key bind")
+    KeyBinds:AddKeybind("BackToHiveBind", {
         Title = "Back To Hive",
         Mode = "Toggle",
         Default = "B",
@@ -203,7 +206,7 @@ function FluentUI:initPlayerTab()
             end
         end
     })
-    self.Tabs.Player:AddKeybind("ToggleBotBind", {
+    KeyBinds:AddKeybind("ToggleBotBind", {
         Title = "Toggle Bot",
         Mode = "Toggle",
         Default = "Q",
