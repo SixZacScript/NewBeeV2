@@ -276,40 +276,66 @@ function TaskManager:waitUntilNearGround(humanoid, field, maxDistance)
     end
     return false
 end
+
 function TaskManager:getSprinklerPositions(field, sprinklerData)
     local positions = {}
     if not field or not sprinklerData then return positions end
 
     local center = field.Position
     local count = sprinklerData.count
-    local spacing = sprinklerData.radius * 2  -- ป้องกันชนกัน
-    local placed = 0
+    local radius = sprinklerData.radius
+    local fieldSize = field.Size or Vector3.new(50, 0, 50)
+    
+    -- เช็คว่า field กว้างทางแกน X หรือ Z
+    local isWideX = fieldSize.X > fieldSize.Z  -- กว้างทางแนวนอน (X-axis)
+    local isWideZ = fieldSize.Z > fieldSize.X  -- กว้างทางแนวตั้ง (Z-axis)
+    
+    -- คำนวณระยะห่างตามแกนที่กว้างกว่า
+    local maxSpacing = math.min(fieldSize.X, fieldSize.Z) * 0.7
+    local spacing = math.min(radius * 1.8, maxSpacing)
 
-    -- spiral layout: เริ่มจากตรงกลางแล้วค่อย ๆ วางรอบ ๆ
-    table.insert(positions, center)
-    placed += 1
-
-    local directions = {
-        Vector3.new(1, 0, 0),
-        Vector3.new(0, 0, 1),
-        Vector3.new(-1, 0, 0),
-        Vector3.new(0, 0, -1),
-    }
-
-    local layer = 1
-    while placed < count do
-        for dirIndex = 1, 4 do
-            local dir = directions[dirIndex]
-            local steps = (dirIndex % 2 == 1) and layer or layer
-
-            for i = 1, steps do
-                if placed >= count then break end
-                local offset = dir * spacing * i
-                table.insert(positions, center + offset)
-                placed += 1
-            end
+    if count == 1 then
+        table.insert(positions, center)
+        
+    elseif count == 2 then
+        if isWideX then
+            -- field กว้างทาง X -> วางแนวนอน (แกน X)
+            table.insert(positions, center + Vector3.new(-spacing/2, 0, 0))
+            table.insert(positions, center + Vector3.new(spacing/2, 0, 0))
+        elseif isWideZ then
+            -- field กว้างทาง Z -> วางแนวตั้ง (แกน Z)
+            table.insert(positions, center + Vector3.new(0, 0, -spacing/2))
+            table.insert(positions, center + Vector3.new(0, 0, spacing/2))
+        else
+            -- field เป็นสี่เหลี่ยมจัตุรัส -> วางแนวนอนเป็นค่าเริ่มต้น
+            table.insert(positions, center + Vector3.new(-spacing/2, 0, 0))
+            table.insert(positions, center + Vector3.new(spacing/2, 0, 0))
         end
-        layer += 1
+        
+    elseif count == 3 then
+        if isWideX then
+            -- field กว้างทาง X -> วางเป็นแถวแนวนอน
+            table.insert(positions, center + Vector3.new(-spacing, 0, 0))
+            table.insert(positions, center)
+            table.insert(positions, center + Vector3.new(spacing, 0, 0))
+        elseif isWideZ then
+            -- field กว้างทาง Z -> วางเป็นแถวแนวตั้ง
+            table.insert(positions, center + Vector3.new(0, 0, -spacing))
+            table.insert(positions, center)
+            table.insert(positions, center + Vector3.new(0, 0, spacing))
+        else
+            -- field เป็นสี่เหลี่ยมจัตุรัส -> วางเป็นรูปสามเหลี่ยม
+            table.insert(positions, center + Vector3.new(0, 0, -spacing/2))
+            table.insert(positions, center + Vector3.new(-spacing/2, 0, spacing/2))
+            table.insert(positions, center + Vector3.new(spacing/2, 0, spacing/2))
+        end
+        
+    elseif count == 4 then
+        -- 4 ตัว -> วางเป็นสี่เหลี่ยมเสมอ
+        table.insert(positions, center + Vector3.new(-spacing/2, 0, -spacing/2))
+        table.insert(positions, center + Vector3.new(spacing/2, 0, -spacing/2))
+        table.insert(positions, center + Vector3.new(-spacing/2, 0, spacing/2))
+        table.insert(positions, center + Vector3.new(spacing/2, 0, spacing/2))
     end
 
     return positions

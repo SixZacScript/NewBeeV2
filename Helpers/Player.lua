@@ -346,7 +346,6 @@ function PlayerHelper:getActivePlanter()
         end
     end
 
-    writefile("activePlanter.json", HttpService:JSONEncode(Planters))
     shared.main.Planter.Actives = Planters
     return Planters
 end
