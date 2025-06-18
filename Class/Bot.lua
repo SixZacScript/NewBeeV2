@@ -223,7 +223,7 @@ function Bot:startIntervalTask()
         end
         
         -- Enable clock usage every hour
-        if now - self.lastHourTick >= Bot.Config.CLOCK_COOLDOWN then
+        if now - self.lastHourTick >= Bot.Config.CLOCK_COOLDOWN + 15 then
             self.lastHourTick = now
             self.canUseClock = true
         end

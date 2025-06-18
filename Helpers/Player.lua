@@ -438,9 +438,9 @@ function PlayerHelper:setupPlanterListener()
                                 )
 
                                 if planter.canHarvest then
-                                    statusText = "✅ " .. statusText
+                                    statusText = "✅ (Ready) | " .. statusText
                                 else
-                                    statusText = "❌ " .. statusText
+                                    statusText = "❌(Not ready) |" .. statusText
                                 end
 
                                 slot:SetDesc(statusText)

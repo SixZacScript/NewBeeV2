@@ -181,26 +181,35 @@ function FluentUI:_initMainTab()
 end
 
 function FluentUI:_createMainToggles(mainTab)
-    self.autoFarmToggle = mainTab:AddToggle("autoFarm", {
-        Title = "🤖 Auto Farm",
+    local mainSection = mainTab:AddSection("Farm Section")
+    self.autoFarmToggle = mainSection:AddToggle("autoFarm", {
+        Title = "Auto Farm",
         Default = false
     })
     
-    self.autoDig = mainTab:AddToggle("autoDig", {
-        Title = "⛏️ Auto Dig",
+    self.autoDig = mainSection:AddToggle("autoDig", {
+        Title = "Auto Dig",
         Default = false
     })
     
-    self.autoSprinkler = mainTab:AddToggle("autoSprinkler", {
-        Title = "💧 Auto Sprinkler",
+    self.autoSprinkler = mainSection:AddToggle("autoSprinkler", {
+        Title = "Auto Sprinkler",
         Default = false,
         Callback = function(val)
             shared.main.autoSprinkler = val
         end
     })
-    
-    self.ignoreHoneyToken = mainTab:AddToggle("ignoreHoneyToken", {
-        Title = "🍯 Ignore Honey Tokens",
+
+    self.autoFarmBubble = mainSection:AddToggle("autoFarmBubble", {
+        Title = "Farm Bubble",
+        Default = false,
+        Callback = function(val)
+            shared.main.autoFarmBubble = val
+        end
+    })
+
+    self.ignoreHoneyToken = mainSection:AddToggle("ignoreHoneyToken", {
+        Title = "Ignore Honey Tokens",
         Default = shared.main.ignoreHoneyToken,
         Callback = function(val)
             shared.main.ignoreHoneyToken = val
@@ -209,14 +218,10 @@ function FluentUI:_createMainToggles(mainTab)
 end
 
 function FluentUI:_createStatistics(section)
-    self.PollenInfo = section:AddParagraph({
-        Title = "🌾 Pollen Collection",
-        Content = "Rate/sec: 0\nHourly: 0\nDaily: 0\nTotal: 0"
-    })
     
     self.HoneyInfo = section:AddParagraph({
         Title = "🍯 Honey Production",
-        Content = "Rate/sec: 0\nHourly: 0\nDaily: 0\nTotal: 0"
+        Content = "Hourly: 0\nDaily: 0\nTotal: 0"
     })
     
     self.sessionTimeInfo = section:AddParagraph({

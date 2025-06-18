@@ -19,9 +19,7 @@ function QuestHelper.new()
     self.monsterEvent = {}
     self.collectedStatics = {
         startTime = tick(),
-        totalCollectedPollen = 0,
         totalConvertHoney = 0,
-        highestPollenPerSec = 0
     }
 
     self:_setupEventHandlers()
@@ -221,8 +219,6 @@ function QuestHelper:getNextQuest(completedQuestName)
     return result
 end
 
-
-
 function QuestHelper:startCollectionRateUpdater()
     task.spawn(function()
         while true do
@@ -234,35 +230,14 @@ function QuestHelper:startCollectionRateUpdater()
             local elapsedTime = tick() - PollenStats.startTime
             if elapsedTime <= 0 then continue end
 
-            -- Pollen PollenStats
-            if PollenStats.totalCollectedPollen > 0 and shared.Fluent and shared.Fluent.PollenInfo then
-                local pollenPerSec = PollenStats.totalCollectedPollen / elapsedTime
-                local pollenPerHour = pollenPerSec * 3600
-                local pollenPerDay = pollenPerSec * 86400
-
-                if pollenPerSec > PollenStats.highestPollenPerSec then
-                    PollenStats.highestPollenPerSec = pollenPerSec
-                end
-
-                shared.Fluent.PollenInfo:SetDesc(string.format(
-                    "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s\nPeak/sec: %s",
-                    shared.TokenDataModule:formatNumber(pollenPerSec, 2),
-                    shared.TokenDataModule:formatNumber(pollenPerHour, 2),
-                    shared.TokenDataModule:formatNumber(pollenPerDay, 2),
-                    shared.TokenDataModule:formatNumber(PollenStats.totalCollectedPollen, 2),
-                    shared.TokenDataModule:formatNumber(PollenStats.highestPollenPerSec, 2)
-                ))
-            end
-
-            -- Honey PollenStats
+            -- Honey Stats
             if PollenStats.totalConvertHoney > 0 and shared.Fluent and shared.Fluent.HoneyInfo then
                 local honeyPerSec = PollenStats.totalConvertHoney / elapsedTime
                 local honeyPerHour = honeyPerSec * 3600
                 local honeyPerDay = honeyPerSec * 86400
 
                 shared.Fluent.HoneyInfo:SetDesc(string.format(
-                    "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s",
-                    shared.TokenDataModule:formatNumber(honeyPerSec, 2),
+                    "Hourly: %s\nDaily: %s\nTotal: %s",
                     shared.TokenDataModule:formatNumber(honeyPerHour, 2),
                     shared.TokenDataModule:formatNumber(honeyPerDay, 2),
                     shared.TokenDataModule:formatNumber(PollenStats.totalConvertHoney, 2)
@@ -271,6 +246,7 @@ function QuestHelper:startCollectionRateUpdater()
         end
     end)
 end
+
 function QuestHelper:onMonsterEvent(data)
     local Action = data.Action
     if Action == "Kill" and self.currentQuest then
@@ -306,13 +282,6 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         if category == "Honey" then
             self.collectedStatics.totalConvertHoney += amount
             return
-        end
-
-        -- Handle Collect Pollen statistics
-        if category == "Pollen" then
-            local pollenRealAmount = data.R or amount
-            self.collectedStatics.totalCollectedPollen += pollenRealAmount
-
         end
 
         -- Process Pollen events for current quest only

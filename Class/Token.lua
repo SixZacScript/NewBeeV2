@@ -341,12 +341,20 @@ end
 function TokenHelper:_handleBubbleSpawn(data)
     local position = data.Pos
     local serverID = data.ID
-    
-    if not self:isPositionInBounds(position, shared.Bot.currentField) then return end
+    local allFieldParts = shared.helper.Field:getAllFieldParts()
+
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
     local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "Bubble")
     local gameToken = Token.new(serverID, "Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
+
+    for index, fieldPart in pairs(allFieldParts) do
+        local isInBound = self:isPositionInBounds(position, fieldPart)
+        if isInBound then
+            gameToken.tokenField = fieldPart
+        end
+    end
+    
     self.activeTokens[serverID] = gameToken
     
     -- Schedule automatic cleanup
@@ -536,6 +544,10 @@ function TokenHelper:isTokenCollectable(tokenData)
         return false
     end
 
+    if not shared.main.autoFarmBubble and tokenData.name == "Bubble" then
+        return false
+    end
+    
     return tokenData and tokenData:isValid()
 end
 
