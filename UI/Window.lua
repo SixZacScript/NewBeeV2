@@ -1,11 +1,11 @@
 local HttpService = game:GetService('HttpService')
 local WP = game:GetService('Workspace')
 local BalloonsFolder  = WP:FindFirstChild("Balloons")
-loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
 local FluentLibrary = shared.ModuleLoader:load(_G.URL.."/UI/WindowLua.lua")
 local SaveManager = shared.ModuleLoader:load(_G.URL.."/UI/SaveManager.lua")
 local InterfaceManager = shared.ModuleLoader:load(_G.URL.."/UI/InterfaceManager.lua")
 local BeesModule = shared.ModuleLoader:load(_G.URL.."/Data/Bee.lua")
+
 
 local FluentUI = {}
 FluentUI.__index = FluentUI
@@ -606,6 +606,10 @@ function FluentUI:destroy()
     self.Window = nil
     self.Fluent = nil
     self.Tabs = nil
+end
+
+if not _G.isGithub then
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
 end
 
 return FluentUI
