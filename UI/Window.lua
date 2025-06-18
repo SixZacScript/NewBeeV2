@@ -82,6 +82,7 @@ function FluentUI:createDefaultTabs()
     self.Tabs.Main = self.Window:AddTab({Title = "Main", Icon = "home"})
     self.Tabs.Player = self.Window:AddTab({Title = "Player", Icon = "user"})
     self.Tabs.Quest = self.Window:AddTab({Title = "Quest", Icon = "book"})
+    self.Tabs.Planter = self.Window:AddTab({Title = "Planter", Icon = "sprout"})
     self.Tabs.Hive = self.Window:AddTab({Title = "Hive", Icon = "circle"})
     self.Tabs.Settings = self.Window:AddTab({
         Title = "Settings",
@@ -550,6 +551,10 @@ function FluentUI:initSettingTab()
                 if part.Name == "Stump" or (part.Parent and part.Parent.Name == "Stump") then
                     continue
                 end
+                if part.Name == "StarAmuletBuilding" or (part.Parent and part.Parent.Name == "StarAmuletBuilding") then
+                    continue
+                end
+                
                 local ancestorModel = part:FindFirstAncestorWhichIsA("Model")
                 if ancestorModel and skipModels[ancestorModel.Name] then continue end
 

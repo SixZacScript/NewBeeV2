@@ -21,6 +21,7 @@ function QuestHelper.new()
         startTime = tick(),
         totalCollectedPollen = 0,
         totalConvertHoney = 0,
+        highestPollenPerSec = 0
     }
 
     self:_setupEventHandlers()
@@ -239,12 +240,17 @@ function QuestHelper:startCollectionRateUpdater()
                 local pollenPerHour = pollenPerSec * 3600
                 local pollenPerDay = pollenPerSec * 86400
 
+                if pollenPerSec > PollenStats.highestPollenPerSec then
+                    PollenStats.highestPollenPerSec = pollenPerSec
+                end
+
                 shared.Fluent.PollenInfo:SetDesc(string.format(
-                    "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s",
+                    "Rate/sec: %s\nHourly: %s\nDaily: %s\nTotal: %s\nPeak/sec: %s",
                     shared.TokenDataModule:formatNumber(pollenPerSec, 2),
                     shared.TokenDataModule:formatNumber(pollenPerHour, 2),
                     shared.TokenDataModule:formatNumber(pollenPerDay, 2),
-                    shared.TokenDataModule:formatNumber(PollenStats.totalCollectedPollen, 2)
+                    shared.TokenDataModule:formatNumber(PollenStats.totalCollectedPollen, 2),
+                    shared.TokenDataModule:formatNumber(PollenStats.highestPollenPerSec, 2)
                 ))
             end
 

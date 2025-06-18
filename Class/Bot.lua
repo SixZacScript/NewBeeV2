@@ -822,6 +822,9 @@ function Bot:onPlayerDied()
     self:stop()
     
     task.spawn(function()
+        self.taskManager.placedField = nil
+        self.taskManager.placedCount = 0
+
         -- Wait for respawn
         while not self:validatePlayer() do
             task.wait(1)

@@ -4,21 +4,10 @@ local Services = {
     RunService = game:GetService("RunService"),
     ReplicatedStorage = game:GetService("ReplicatedStorage")
 }
-local Folders = {
-    Monsters = Services.Workspace:FindFirstChild("Monsters")
-}
+
 local placeSprinklerEvent = game:GetService("ReplicatedStorage").Events.PlayerActivesCommand
 local TaskManager = {}
 TaskManager.__index = TaskManager
-
-local COLLECTION_TIMEOUT = 5
-local COLLECTION_RETRIES = 2
-local Logger = {
-    INFO = "INFO",
-    WARN = "WARN", 
-    ERROR = "ERROR",
-    SUCCESS = "SUCCESS"
-}
 
 function TaskManager.new(bot)
     local self = setmetatable({}, TaskManager)
@@ -294,7 +283,6 @@ function TaskManager:doFarming()
 end
 
 
-
 function TaskManager:convertPollen()
     if not self.bot.plr:isCapacityFull() then 
         return false 
@@ -335,172 +323,11 @@ function TaskManager:convertPollen()
 end
 
 
-function TaskManager:clearDebugVisual()
-    if self.debugVisual then
-        self.debugVisual:Destroy()
-        self.debugVisual = nil
-    end
-end
-
-function TaskManager:walkTo(taskObj)
-    self:clearDebugVisual()
-    local player = self.bot.plr
-    local rootPart = player.rootPart
-    local humanoid = player.humanoid
-    local targetPosition = taskObj.data.position
-    local taskType = taskObj.data.type or "Unknow"
-    local timeout = taskObj.data.timeout or 5
-
-    if not rootPart or not humanoid or not targetPosition then return warn("humanoid not found") end
-
-    local reached = false
-    local startTime = tick()
-    local isRunning = true
-    local moveConn,cancelConn
-    self.debugVisual = player:debugVisual(targetPosition, taskType == "collectToken" and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0))
-    humanoid:MoveTo(targetPosition)
-
-    local function cleanup()
-        self:clearDebugVisual()
-        if moveConn then 
-            moveConn:Disconnect() 
-            moveConn = nil
-        end
-        if cancelConn then 
-            cancelConn:Disconnect() 
-            cancelConn = nil
-        end
-    end
-
-    moveConn = humanoid.MoveToFinished:Connect(function()
-        reached = true
-        cleanup()
-    end)
-
-    cancelConn = Services.RunService.Heartbeat:Connect(function()
-        local currentTime = tick()
-        if not self.bot:isRunning() or (currentTime - startTime > timeout) then
-            isRunning = false
-            player:stopMoving()
-            cleanup()
-        end
-    end)
-
-    repeat
-        task.wait()
-    until reached or not isRunning
-
-    cleanup()
-    return reached
-end
 
 
 
-function Logger:log(level, message, data)
-    local timestamp = os.date("%H:%M:%S")
-    local prefix = {
-        [self.INFO] = "ℹ️",
-        [self.WARN] = "⚠️", 
-        [self.ERROR] = "❌",
-        [self.SUCCESS] = "✅"
-    }
-    
-    print(string.format("[%s] %s %s", timestamp, prefix[level] or "•", message))
-    
-    if data then
-        for key, value in pairs(data) do
-            print(string.format("  • %s: %s", key, tostring(value)))
-        end
-    end
-end
-
-function TaskManager:validateTokenData(taskObj)
-    if not taskObj then
-        return false, "Task object is nil"
-    end
-    
-    if not taskObj.data then
-        return false, "Task data is missing"
-    end
-    
-    if not taskObj.data.token then
-        return false, "Token data is missing"
-    end
-    
-    return true, nil
-end
-
-function TaskManager:calculateTokenMetrics(token, playerPosition)
-    local tokenPosition = token.position
-    local distance = (tokenPosition - playerPosition).Magnitude
-    local age = tick() - (token.SpawnTime or tick())
-    
-    return {
-        position = tokenPosition,
-        distance = math.round(distance * 100) / 100,
-        age = math.round(age * 100) / 100,
-        efficiency = token.priority / math.max(distance, 1) 
-    }
-end
 
 
-function TaskManager:attemptTokenCollection(token, retries)
-    retries = retries or COLLECTION_RETRIES
-    local humanoid = self.bot.player.humanoid
-    local lastSpeed = shared.main.WalkSpeed
-
-    if token.priority >= 80 then
-        shared.main.WalkSpeed = 100
-        humanoid.WalkSpeed = 100
-    end
-    local success = false
-    for attempt = 1, retries do
-        success = self:walkTo({
-            data = {
-                type = "collectToken",
-                position = token.Position,
-                timeout = COLLECTION_TIMEOUT
-            }
-        })
-        if success then break end
-
-        if attempt < retries then
-            Logger:log(Logger.WARN, string.format("Collection attempt %d failed, retrying...", attempt))
-            task.wait(0.5)
-        end
-    end
-
-    shared.main.WalkSpeed = lastSpeed
-    humanoid.WalkSpeed = lastSpeed
-    return success
-end
-
-
-
-function TaskManager:collectToken(taskObj)
-    local token = taskObj.data.token
-    local rootPart = self.bot.player.rootPart
-
-    if not token or not rootPart then
-        return false
-    end
-
-    local isValid, errorMsg = self:validateTokenData(taskObj)
-    if not isValid then
-        warn(errorMsg)
-        return false
-    end
-
-    local playerPosition = rootPart.Position
-    local metrics = self:calculateTokenMetrics(token, playerPosition)
-    token.Position = metrics.position
-
-    if not self:attemptTokenCollection(token) then
-        return false
-    end
-
-    return true
-end
 
 
 
