@@ -381,7 +381,6 @@ function TaskManager:doFarming()
     return true
 end
 
-
 function TaskManager:convertPollen()
     if not self.bot.plr:isCapacityFull() then 
         return false 
@@ -396,8 +395,14 @@ function TaskManager:convertPollen()
     end
 
     local balloonValue = 0
+    local balloonBlessing = 0
+    local blessingThreshold = shared.main.convertAtBlessing or 1
+
     if shared.main.autoConvertBalloon then
-        balloonValue = select(1, shared.helper.Hive:getBalloon())
+        balloonValue, balloonBlessing = shared.helper.Hive:getBalloon()
+        balloonValue = balloonValue or 0
+        balloonBlessing = balloonBlessing or 0
+
     end
 
     player:tweenTo(self.hive:getHivePosition(), 1, function()
@@ -413,14 +418,16 @@ function TaskManager:convertPollen()
 
         local startTime = tick()
         local timeout = 300
-        while (player.Pollen > 0 or (shared.main.autoConvertBalloon and balloonValue > 0))
+        while (player.Pollen > 0 or (shared.main.autoConvertBalloon and balloonValue > 0 and balloonBlessing >= blessingThreshold))
             and bot:isConverting()
             and bot:isRunning()
             and (tick() - startTime < timeout) do
 
             task.wait(1)
             if shared.main.autoConvertBalloon then
-                balloonValue = select(1, shared.helper.Hive:getBalloon())
+                balloonValue, balloonBlessing = shared.helper.Hive:getBalloon()
+                balloonValue = balloonValue or 0
+                balloonBlessing = balloonBlessing or 0
             end
         end
 

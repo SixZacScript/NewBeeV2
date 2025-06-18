@@ -207,17 +207,6 @@ function FluentUI:_createMainToggles(mainTab)
             shared.main.autoFarmBubble = val
         end
     })
-
-    self.autoConvertBalloon = mainSection:AddToggle("autoConvertBalloon", {
-        Title = "Auto Convert Hive Balloon",
-        Description = "🎈 Automatically converts the hive balloon when it's available.",
-        Default = false,
-        Callback = function(val)
-            shared.main.autoConvertBalloon = val
-        end
-    })
-
-
     self.ignoreHoneyToken = mainSection:AddToggle("ignoreHoneyToken", {
         Title = "Ignore Honey Tokens",
         Description = "Ignore honey tokens while farming/do quest",
@@ -226,6 +215,31 @@ function FluentUI:_createMainToggles(mainTab)
             shared.main.ignoreHoneyToken = val
         end
     })
+    
+    local balloonSection = mainTab:AddSection("Balloon Section")
+    self.autoConvertBalloon = balloonSection:AddToggle("autoConvertBalloon", {
+        Title = "Auto Convert Hive Balloon",
+        Description = "🎈 Automatically converts the hive balloon when it's available.",
+        Default = false,
+        Callback = function(val)
+            shared.main.autoConvertBalloon = val
+        end
+    })
+
+    self.convertAtBlessing = balloonSection:AddSlider("convertAtBlessing", {
+        Title = "Convert At Blessing",
+        Description = "🔁 Starts converting balloon when blessing count reaches this value.",
+        Default = 1,
+        Min = 1,
+        Max = 100,
+        Rounding = 0,
+        Callback = function(Value)
+            shared.main.convertAtBlessing = Value
+        end
+    })
+
+
+    
 
 end
 

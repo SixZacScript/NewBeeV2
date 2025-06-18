@@ -37,9 +37,12 @@ shared.main = {
     autoQuest = false,
     autoDig = false,
     autoFarmBubble = false,
-    autoConvertBalloon = false,
     autoSprinkler = false,
     ignoreHoneyToken = false,
+
+    -- Balloon Section
+    autoConvertBalloon = false,
+    convertAtBlessing = false,
     
     statusText = GUIHelper:createStatus(),
     Planter = {
