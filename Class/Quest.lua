@@ -105,7 +105,7 @@ function QuestHelper:getActiveQuest()
             self.activeQuest[questName] = questData;
         end
 
-        if questData and questData.isCompleted and questData.NextQuest then
+        if questData and questData.isCompleted and questData.NextQuest and questData.canDo then
             self:submitQuest(questData)
         end
         
@@ -188,12 +188,12 @@ function QuestHelper:submitQuest(quest)
         local giveQuestEvent = game:GetService("ReplicatedStorage").Events.GiveQuest
         giveQuestEvent:FireServer(nextQuest)
     end
+    self.activeQuest[quest.Name] = nil
 
     if self.currentQuest and quest.Name == self.currentQuest.Name then
-        self:getAvailableTask()
+        self:clearCurrentQuest()
+        return self:getAvailableTask()
     end
-
-    self.activeQuest[quest.Name] = nil
 end
 
 function QuestHelper:getNextQuest(completedQuestName)
@@ -328,10 +328,7 @@ function QuestHelper:onServerGiveEvent(eventType, data)
                 local noSpecifics = not taskData.Zone and not taskData.Color
 
                 if matchZone or matchColor or noSpecifics then
-                    local currentProgress = taskData.progress[2]
-                    local maxProgress = taskData.progress[3]
-                    taskData.progress[2] = math.min(currentProgress + pollenRealAmount, maxProgress)
-                    taskData.progress[1] = taskData.progress[2] / maxProgress
+                    taskData.progress = self:updateProgress(taskData, pollenRealAmount)
                 end
             end
 
@@ -382,7 +379,7 @@ function QuestHelper:getAvailableTask()
                     self:setQuest(questData, taskData)
                     return questData
                 elseif not fallbackTask then
-                    fallbackTask = {quest = questData, task = taskData}
+                    fallbackTask = {questData = questData, taskData = taskData}
                 end
             elseif taskData.Type == "Collect Pollen" or taskData.Type == "Collect Tokens" then
                 self:setQuest(questData, taskData)
@@ -392,8 +389,8 @@ function QuestHelper:getAvailableTask()
     end
 
     if fallbackTask then
-        self:setQuest(fallbackTask.quest, fallbackTask.task)
-        return fallbackTask.quest
+        self:setQuest(fallbackTask.questData, fallbackTask.taskData)
+        return fallbackTask.questData
     end
 
     return false

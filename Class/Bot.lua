@@ -657,9 +657,8 @@ function Bot:shouldUseWealthClock()
 end
 
 function Bot:shouldSubmitQuest()
-    return self.questHelper.currentQuest and 
-           self.questHelper.currentTask and 
-           self.questHelper.isCompleted
+    local canSumit =  self.questHelper.currentQuest and self.questHelper.currentTask and self.questHelper.isCompleted
+    return canSumit
 end
 
 function Bot:shouldDoQuest()
@@ -673,7 +672,12 @@ function Bot:shouldDoQuest()
 
     if q.currentTask and q.currentTask.Type == "Defeat Monsters" then
         local canHunt, fieldName = shared.helper.Monster:canHuntMonster(q.currentTask.MonsterType)
-        if not canHunt or not fieldName then return false end
+        if not canHunt or not fieldName then 
+            if self.currentState == self.States.DO_QUEST then
+                self:setState(self.States.FARMING)
+            end
+            return false
+        end
     end
     
     return q.currentQuest and q.currentTask and not q.isCompleted

@@ -34,18 +34,23 @@ function TaskManager:submitQuest(currentQuest)
     if not currentQuest then
         warn("Submit fail: current quest not found.")
         self.bot:setState(self.bot.States.FARMING)
-        return false
+        return true
     end
 
     local currentQuestName = currentQuest.Name
     if not currentQuestName then
         warn("Submit fail: current quest name is nil.")
         self.bot:setState(self.bot.States.FARMING)
-        return false
+        return true
     end
     
-    shared.helper.Quest:submitQuest(currentQuest)
-    self.bot:setState(self.bot.States.IDLE)
+    local nextQuest = shared.helper.Quest:submitQuest(currentQuest)
+    if nextQuest then
+        self.bot:setState(self.bot.States.IDLE)
+    else
+        self.bot:setState(self.bot.States.FARMING)
+    end
+    
     return true
 end
 

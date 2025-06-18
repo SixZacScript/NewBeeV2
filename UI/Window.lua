@@ -51,6 +51,21 @@ function FluentUI.new()
 
     InterfaceManager:BuildInterfaceSection(self.Tabs.Settings)
     SaveManager:BuildConfigSection(self.Tabs.Settings)
+    
+    SaveManager:SetIgnoreIndexes({
+        -- Auto Jelly section
+        "jellySelectedBee",
+        "jellySelectedRare",
+        "jellyRowPos",
+        "jellyColumnPos",
+        "jellyAnyGifted",
+
+        -- Bee Tools section
+        "rowPos",
+        "columnPos",
+        "feedAmount",
+        "foodType"
+    })
     self.Window:SelectTab(1)
 
     if self.afkConnection then self.afkConnection:Disconnect() end
@@ -584,6 +599,5 @@ function FluentUI:destroy()
     self.Fluent = nil
     self.Tabs = nil
 end
-
 
 return FluentUI
