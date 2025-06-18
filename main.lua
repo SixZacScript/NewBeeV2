@@ -16,6 +16,8 @@ local FieldModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Field.lua")
 local NPCsModule = shared.ModuleLoader:load(_G.URL.."/Data/NPCs.lua")
 local BeeModule = shared.ModuleLoader:load(_G.URL.."/Class/Bee.lua")
 local GUIHelper = GUIHelperModule.new()
+GUIHelper:loading("Loading data...")
+
 GUIHelper:createQuestInfo({
     title = "📜 No active quest",
     content  = "No active quest available",
@@ -109,7 +111,7 @@ shared.helper.Hive = HiveModule.new()
 shared.helper.Quest = QuestHelper.new() 
 shared.Bot = BotModule.new()
 
-
+GUIHelper:stopLoading()
 shared.main.Hive = shared.helper.Hive:initHive()
 
 

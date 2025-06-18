@@ -220,11 +220,13 @@ function FluentUI:_createMainToggles(mainTab)
 
     self.ignoreHoneyToken = mainSection:AddToggle("ignoreHoneyToken", {
         Title = "Ignore Honey Tokens",
+        Description = "Ignore honey tokens while farming/do quest",
         Default = shared.main.ignoreHoneyToken,
         Callback = function(val)
             shared.main.ignoreHoneyToken = val
         end
     })
+
 end
 
 function FluentUI:_createStatistics(section)

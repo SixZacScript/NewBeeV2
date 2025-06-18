@@ -4,6 +4,8 @@ GUI.__index = GUI
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
 
 -- Utility to create UI elements
 local function create(instanceType, props)
@@ -45,6 +47,8 @@ function GUI.new()
     self.gui = gui
     self.container = container
     self.components = {}
+    self.loadingScreen = nil
+    self.loadingTween = nil
     return self
 end
 
@@ -231,6 +235,93 @@ function GUI:connectButton(name, callback)
     if button and callback then
         return button.MouseButton1Click:Connect(callback)
     end
+end
+-- Loading Screen Methods
+function GUI:loading(text)
+    if self.loadingScreen then
+        self:stopLoading()
+    end
+
+    self.loadingScreen = create("Frame", {
+        Name = "LoadingScreen",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        ZIndex = 1000,
+        Parent = self.gui
+    })
+
+    local loadingContainer = create("Frame", {
+        Name = "LoadingContainer",
+        Size = UDim2.new(0, 300, 0, 150),
+        Position = UDim2.new(0.5, -150, 0.5, -75),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BackgroundTransparency = 0.1,
+        BorderSizePixel = 0,
+        Parent = self.loadingScreen
+    })
+    create("UICorner", { CornerRadius = UDim.new(0, 12), Parent = loadingContainer })
+    create("UIStroke", {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 2,
+        Transparency = 0.8,
+        Parent = loadingContainer
+    })
+
+    local spinner = create("Frame", {
+        Name = "Spinner",
+        Size = UDim2.new(0, 50, 0, 50),
+        Position = UDim2.new(0.5, -25, 0.3, 0),
+        BackgroundTransparency = 1,
+        Parent = loadingContainer
+    })
+
+    for i = 0, 7 do
+        local dot = create("Frame", {
+            Name = "Dot" .. i,
+            Size = UDim2.new(0, 8, 0, 8),
+            Position = UDim2.new(0.5, math.cos(math.rad(i * 45)) * 20 - 4, 0.5, math.sin(math.rad(i * 45)) * 20 - 4),
+            BackgroundColor3 = Color3.fromRGB(0, 150, 255),
+            BorderSizePixel = 0,
+            Parent = spinner
+        })
+        create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
+    end
+
+    local rot = 0
+    self.spinnerConnection = RunService.RenderStepped:Connect(function(dt)
+        rot += dt * 120
+        spinner.Rotation = rot % 360
+    end)
+
+    local loadingText = create("TextLabel", {
+        Name = "LoadingText",
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0.65, 0),
+        BackgroundTransparency = 1,
+        Text = text or "Loading...",
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = loadingContainer
+    })
+end
+
+function GUI:stopLoading()
+    if not self.loadingScreen then return end
+
+    if self.spinnerConnection then
+        self.spinnerConnection:Disconnect()
+        self.spinnerConnection = nil
+    end
+
+    self.loadingScreen:Destroy()
+    self.loadingScreen = nil
 end
 
 return GUI
