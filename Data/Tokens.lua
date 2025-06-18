@@ -7,6 +7,7 @@ function TokenHelper:getAllToken()
         ["⭐ Starjelly"] = {id = 2319943273, isSkill = false, Priority = 100},
         ["🥇 Gold Egg"] = {id = 1471849394, isSkill = false, Priority = 95},
         ["🌱 Sprout"] = {id = 2529092020, isSkill = false, Priority = 90},
+        ["🕯️ Hard wax"] = {id = 8277780065, isSkill = false, Priority = 90},
 
         -- TIER 2: HIGH VALUE CONSUMABLES (Priority 80-90)
         ["🌙 Moon Charm"] = {id = 2306224708, isSkill = false, Priority = 89},
@@ -23,6 +24,7 @@ function TokenHelper:getAllToken()
         ["🧻 Soft Wax"] = {id = 8277778300, isSkill = false, Priority = 80},
         ["⭐ Star"] = {id = 2000457501, isSkill = true, Priority = 80},
         ["🌵 Spike"] = {id = 2314214749, isSkill = false, Priority = 80},
+        ["🥚 Silver Egg"] = {id = 1471848094, isSkill = false, Priority = 80},
 
         -- TIER 3: POWERFUL BOOSTS & SYNCS (Priority 70-75)
         ["🔗 Link Token"] = {id = 1629547638, isSkill = true, Priority = 75},

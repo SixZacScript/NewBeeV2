@@ -1,6 +1,9 @@
 local HttpService = game:GetService("HttpService")
 local Rep = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local LocalPlanters = require(Rep.LocalPlanters)
+local myPlanters = debug.getupvalue(LocalPlanters.LoadPlanter, 4)
+
 local PlayerHelper = {}
 PlayerHelper.__index = PlayerHelper
 
@@ -21,6 +24,7 @@ function PlayerHelper.new()
     self.Capacity = self.CoreStats:WaitForChild("Capacity").Value
     self.Honeycomb = {}
     self.plrStats = {}
+    self.harvestedPlanter = {}
 
     self:getPlayerStats()
     self:_updateCharacter()
@@ -30,10 +34,10 @@ function PlayerHelper.new()
     end)
 
     self.CoreStats.Pollen.Changed:Connect(function(val) self.Pollen = val end)
+    self.CoreStats.Capacity.Changed:Connect(function(val) self.Capacity = val end)
 
-    self.CoreStats.Capacity.Changed:Connect(
-        function(val) self.Capacity = val end)
 
+    self:setupPlanterListener()
     return self
 end
 function PlayerHelper:isCapacityFull() return self.Pollen >= self.Capacity end
@@ -80,6 +84,7 @@ function PlayerHelper:getLocalPlayer() return self.player end
 function PlayerHelper:getCharacter() return self.character end
 
 function PlayerHelper:getHumanoid() return self.humanoid end
+
 
 function PlayerHelper:isValid()
     return self.player and self.character and self.character.Parent ~= nil and
@@ -250,6 +255,103 @@ function PlayerHelper:getSprinkler()
 
     return self.EquippedSprinkler, sprinklers[self.EquippedSprinkler] 
 end
+
+function PlayerHelper:getPlanterFullName(shortName)
+    local fullNameMap = {
+        ['Paper']        = "Paper Planter",
+        ['Ticket']       = "Ticket Planter",
+        ['Sticker']      = "Sticker Planter",
+        ['Festive']      = "Festive Planter",
+        ['Plastic']      = "Plastic Planter",
+        ['Candy']        = "Candy Planter",
+        ["Red Clay"] = "Red Clay Planter",
+        ["Blue Clay"]= "Blue Clay Planter",
+        ['Tacky']        = "Tacky Planter",
+        ['Pesticide']    = "Pesticide Planter",
+        ["Heat-Treated"] = "Heat‑Treated Planter",
+        ['Hydroponic']   = "Hydroponic Planter",
+        ['Petal']        = "Petal Planter",
+        ["Planter Of Plenty"] = "Planter Of Plenty"
+    }
+
+    return fullNameMap[shortName] or (shortName .. " Planter")
+end
+
+function PlayerHelper:getCanHarvestPlanter()
+    local allPlanters = self:getActivePlanter()
+
+    for _, planter in ipairs(allPlanters) do
+        if planter.canHarvest then return planter end
+    end
+
+    return nil
+end
+
+
+function PlayerHelper:getPlanterToPlace()
+    local allPlanters = self:getActivePlanter()
+    local slots = shared.main.Planter.Slots
+
+    for _, slot in ipairs(slots) do
+        if slot.PlanterType == "None" then continue end
+        local found = false
+        for _, planter in ipairs(allPlanters) do
+            if planter.Type == slot.PlanterType then
+                found = true
+                break
+            end
+        end
+
+        if not found then
+            return slot
+        end
+    end
+
+    return nil
+end
+
+function PlayerHelper:getActivePlanter()
+    local myPlanters = debug.getupvalue(LocalPlanters.LoadPlanter, 4)
+    local Planters = {}
+    local slotConfig = shared.main.Planter.Slots
+
+    for _, planter in ipairs(myPlanters) do
+        if planter.Owner.Name ~= self.player.Name then continue end
+        local percent100 = planter.GrowthPercent * 100
+        table.insert(Planters, {
+            Type = planter.Type,
+            Position = planter.Pos,
+            ActorID = planter.ActorID,
+            GrowthPercent = planter.GrowthPercent,
+            percent100 = percent100,
+            canHarvest = false,
+        })
+       
+    end
+
+    -- ตรวจสอบว่าควร harvest ไหม
+    for _, slot in ipairs(slotConfig) do
+        if slot.PlanterType == "None" then continue end
+        for _, planter in ipairs(Planters) do
+            if slot.PlanterType == planter.Type then
+                if planter.percent100 >= slot.HarvestAt then
+                    planter.canHarvest = true
+                end
+                planter.Field = slot.Field
+                slot.Placed = true
+                break
+            else
+                slot.Placed = false
+            end
+        end
+    end
+
+    writefile("activePlanter.json", HttpService:JSONEncode(Planters))
+    shared.main.Planter.Actives = Planters
+    return Planters
+end
+
+
 function PlayerHelper:getPlayerStats()
     local success, plrStats = pcall(function()
         local RetrievePlayerStats = Rep.Events.RetrievePlayerStats
@@ -263,6 +365,7 @@ function PlayerHelper:getPlayerStats()
     self.Honeycomb = plrStats.Honeycomb
     self.Accessories = plrStats.Accessories or {}
     self.EquippedSprinkler = plrStats.EquippedSprinkler
+
 
     writefile("playerStats.json", HttpService:JSONEncode(plrStats))
     return self.plrStats
@@ -308,6 +411,56 @@ function PlayerHelper:getEqupipedMask()
     return EquippedAccessories.Hat
     
 end
+function PlayerHelper:setupPlanterListener()
+    task.spawn(function()
+        while true do
+            local active = self:getActivePlanter()
+            local Slots = shared.main.Planter.Slots or {}
+
+            if shared.Fluent then  
+                for i = 1, 3 do
+                    local slotConfig = Slots[i]
+                    local slot = shared.Fluent["activePlanterSlot" .. i]
+
+                    if slot then
+                        if slot.PlanterType == "None" then continue end
+                        local found = false
+
+                        for _, planter in ipairs(active) do
+                            local growthPercent = math.floor(planter.GrowthPercent * 1000) * 0.1
+
+                            if slotConfig.PlanterType == planter.Type then
+                                found = true
+                                local statusText = string.format(
+                                    "%s | Growth: %.1f%%",
+                                    planter.Type,
+                                    growthPercent
+                                )
+
+                                if planter.canHarvest then
+                                    statusText = "✅ " .. statusText
+                                else
+                                    statusText = "❌ " .. statusText
+                                end
+
+                                slot:SetDesc(statusText)
+                            end
+                        end
+
+                        if not found then
+                            slot:SetDesc("No planter is currently placed.")
+                        end
+                    end
+                end
+            end
+
+            task.wait(1)
+        end
+    end)
+end
+
+
+
 
 function PlayerHelper:destroy()
     if self._enforceStatsConnection then

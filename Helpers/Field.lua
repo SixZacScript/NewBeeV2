@@ -309,6 +309,26 @@ function FieldHelper:getBestFieldIndexesByType()
     return orderedIndexes
 end
 
+function FieldHelper:getFieldByPosition(position)
+    if not position then return nil end
+
+    local closestField = nil
+    local minDistance = math.huge
+
+    for _, field in ipairs(self.fieldOrder) do
+        local part = self:getField(field.name)
+        if part and part:IsA("BasePart") then
+            local distance = (part.Position - position).Magnitude
+            if distance < minDistance then
+                minDistance = distance
+                closestField = part
+            end
+        end
+    end
+
+    return closestField
+end
+
 function FieldHelper:destroy()
     self.fieldMap = nil
     self.fieldOrder = nil

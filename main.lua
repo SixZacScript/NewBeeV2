@@ -34,10 +34,38 @@ shared.main = {
     defaultJumpPower = 50,
     autoQuest = false,
     autoDig = false,
+   
     autoSprinkler = false,
     ignoreHoneyToken = false,
     
     statusText = GUIHelper:createStatus(),
+    Planter = {
+        autoPlanterEnabled = false,
+        Slots = {
+            {
+                PlanterType = "None",
+                Field = nil,
+                HarvestAt = 100,
+                Placed = false,
+            },
+            {
+                PlanterType = "None",
+                Field = nil,
+                HarvestAt = 100,
+                Placed = false,
+            },
+            {
+                PlanterType = "None",
+                Field = nil,
+                HarvestAt = 100,
+                Placed = false,
+            }
+        },
+        Actives = {
+
+        }
+        
+    },
     Equip = {
         autoHooneyMask = false,
         defaultMask = nil,
@@ -84,3 +112,7 @@ shared.Bot = BotModule.new()
 shared.main.Hive = shared.helper.Hive:initHive()
 
 
+
+if not _G.isGithub then
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
+end

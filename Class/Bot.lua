@@ -1,5 +1,4 @@
 -- Services
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TaskManager = shared.ModuleLoader:load(_G.URL.."/Class/Task.lua")
@@ -32,7 +31,9 @@ Bot.States = {
     KILL_MONSTER = "KILL_MONSTER",
     DO_QUEST = "DO_QUEST",
     SUBMITTING_QUEST = "SUBMITTING_QUEST",
-    USE_WEALTH_CLOCK = "USE_WEALTH_CLOCK"
+    USE_WEALTH_CLOCK = "USE_WEALTH_CLOCK",
+    AUTO_PLANTER = "AUTO_PLANTER",
+
 }
 
 Bot.StateDisplay = {
@@ -46,10 +47,12 @@ Bot.StateDisplay = {
     DO_QUEST = "📜 Doing quest",
     SUBMITTING_QUEST = "📜 Submitting quest",
     USE_WEALTH_CLOCK = "⏱️ Using wealth clock",
+    AUTO_PLANTER = "🪴 Auto Planter",
+
 }
 
 -- State Machine
-local commonTransitions = {Bot.States.FARMING, Bot.States.USE_WEALTH_CLOCK, Bot.States.STOP, Bot.States.IDLE}
+local commonTransitions = {Bot.States.FARMING, Bot.States.USE_WEALTH_CLOCK, Bot.States.AUTO_PLANTER, Bot.States.STOP, Bot.States.IDLE}
 
 Bot.StateMachine = {
     [Bot.States.IDLE] = {
@@ -80,6 +83,7 @@ Bot.StateMachine = {
         Bot.States.AVOID_MONSTER,
         Bot.States.SUBMITTING_QUEST,
         Bot.States.USE_WEALTH_CLOCK,
+        Bot.States.AUTO_PLANTER,
         Bot.States.IDLE,
         Bot.States.STOP,
     },
@@ -88,6 +92,7 @@ Bot.StateMachine = {
         Bot.States.DO_QUEST,
         Bot.States.COLLECTING,
         Bot.States.USE_WEALTH_CLOCK,
+        Bot.States.AUTO_PLANTER,
         Bot.States.IDLE,
         Bot.States.STOP
     },
@@ -95,6 +100,7 @@ Bot.StateMachine = {
         Bot.States.FARMING,
         Bot.States.DO_QUEST,
         Bot.States.USE_WEALTH_CLOCK,
+        Bot.States.AUTO_PLANTER,
         Bot.States.STOP
     },
     [Bot.States.DO_QUEST] = {
@@ -104,6 +110,7 @@ Bot.StateMachine = {
         Bot.States.AVOID_MONSTER,
         Bot.States.SUBMITTING_QUEST,
         Bot.States.USE_WEALTH_CLOCK,
+        Bot.States.AUTO_PLANTER,
         Bot.States.IDLE,
         Bot.States.STOP
     },
@@ -111,6 +118,7 @@ Bot.StateMachine = {
         Bot.States.FARMING,
         Bot.States.DO_QUEST,
         Bot.States.USE_WEALTH_CLOCK,
+        Bot.States.AUTO_PLANTER,
         Bot.States.IDLE,
         Bot.States.STOP
     },
@@ -120,9 +128,20 @@ Bot.StateMachine = {
         Bot.States.DO_QUEST,
         Bot.States.AVOID_MONSTER,
         Bot.States.SUBMITTING_QUEST,
+        Bot.States.AUTO_PLANTER,
         Bot.States.IDLE,
         Bot.States.STOP,
     },
+    [Bot.States.AUTO_PLANTER] = {
+        Bot.States.FARMING,
+        Bot.States.CONVERTING,
+        Bot.States.DO_QUEST,
+        Bot.States.AVOID_MONSTER,
+        Bot.States.SUBMITTING_QUEST,
+        Bot.States.IDLE,
+        Bot.States.STOP
+    },
+
     [Bot.States.STOP] = {
         Bot.States.IDLE
     }
@@ -179,6 +198,7 @@ function Bot:initializeTaskHandlers()
         farming = self.handleFarmingTask,
         collecting = self.handleCollectingTask,
         converting = self.handleConvertingTask,
+        planter =  self.handlePlanter,
         avoiding_monster = self.handleAvoidMonsterTask,
         killing_monster = self.handleKillMonsterTask,
         shouldDoQuest = self.handleDoingQuest,
@@ -354,29 +374,6 @@ function Bot:processTask(taskData)
     return true
 end
 
--- Optimized Task Prioritization
-function Bot:checkForNewTasks()
-    local conditions = self:evaluateConditions()
-    
-    if conditions.hasMonster then
-        self:addTask({type = "avoiding_monster", priority = 1})
-    elseif conditions.canUseClock then
-        self:addTask({type = "shouldUseWealthClock", priority = 2})
-    elseif conditions.shouldConvert then
-        self:addTask({type = "converting", priority = 3})
-    elseif conditions.questAvailable then
-        self:addTask({type = "shouldDoQuest", priority = 4})
-    elseif conditions.hasTokens then
-        self:addTask({type = "collecting", priority = 5})
-    elseif conditions.questCompleted then
-        self:addTask({type = "shouldSubmitQuest", priority = 6})
-    elseif conditions.shouldKillMonster then
-        self:addTask({type = "killing_monster", priority = 7})
-    elseif conditions.shouldFarm then
-        self:addTask({type = "farming", priority = 8})
-    end
-end
-
 function Bot:evaluateConditions()
     local hasToken = self.token and self.token.instance and not self.token.touched
     local inField = self.plr:isPlayerInField(self.currentField)
@@ -386,12 +383,42 @@ function Bot:evaluateConditions()
         canUseClock = self.canUseClock and self.currentState ~= Bot.States.USE_WEALTH_CLOCK,
         shouldConvert = self.plr:isCapacityFull() and self.isStart,
         hasTokens = hasToken and inField and self.token.tokenField == self.currentField,
+        canHarvestPlanter = self.shouldDoPlanter(),
         questAvailable = self:shouldDoQuest(),
         questCompleted = self:shouldSubmitQuest(),
         shouldKillMonster = self:shouldKillMonster(),
         shouldFarm = self:shouldFarm()
     }
 end
+
+-- Optimized Task Prioritization
+function Bot:checkForNewTasks()
+    local conditions = self:evaluateConditions()
+
+    if conditions.hasMonster then
+        self:addTask({type = "avoiding_monster", priority = 1})
+    elseif conditions.canUseClock then
+        self:addTask({type = "shouldUseWealthClock", priority = 2})
+    elseif conditions.shouldConvert then
+        self:addTask({type = "converting", priority = 3})
+    elseif conditions.canHarvestPlanter then
+        self:addTask({type = "planter", priority = 4})
+    elseif conditions.questAvailable then
+        self:addTask({type = "shouldDoQuest", priority = 5})
+    elseif conditions.hasTokens then
+        self:addTask({type = "collecting", priority = 6})
+    elseif conditions.questCompleted then
+        self:addTask({type = "shouldSubmitQuest", priority = 7})
+    elseif conditions.shouldKillMonster then
+        self:addTask({type = "killing_monster", priority = 8})
+    elseif conditions.shouldFarm then
+        self:addTask({type = "farming", priority = 9})
+    else
+        print("⚠️ No conditions met, forcing farming task")
+        self:addTask({type = "farming", priority = 9})
+    end
+end
+
 
 function Bot:addTask(task)
     -- ใช้ simple priority check แทน binary search
@@ -460,6 +487,27 @@ function Bot:handleConvertingTask(taskData)
     self:setState(Bot.States.IDLE)
     return true
 end
+function Bot:handlePlanter()
+    self:setState(Bot.States.AUTO_PLANTER)
+    
+    if not shared.main.Planter.autoPlanterEnabled then 
+        self:setState(Bot.States.IDLE)
+        return true 
+    end
+
+    local playerHelper = self.plr
+    local planterToPlace = playerHelper:getPlanterToPlace()
+    local planterToHarvest = playerHelper:getCanHarvestPlanter()
+
+    if planterToPlace then
+        return self.taskManager:placePlanter()
+    elseif planterToHarvest then
+        return self.taskManager:harvestPlanter()
+    end 
+
+    self:setState(Bot.States.IDLE)
+    return true
+end
 
 function Bot:handleAvoidMonsterTask(taskData)
     self:setState(Bot.States.AVOID_MONSTER)
@@ -493,7 +541,7 @@ end
 function Bot:handleDoingQuest(taskData)
     local currentQuest = self.questHelper.currentQuest
     local currentTask = self.questHelper.currentTask
-    -- print("start doing quest" , currentTask.Description)
+
     if not shared.main.autoQuest then
         warn("Auto quest is disabled")
         return true
@@ -509,21 +557,7 @@ function Bot:handleDoingQuest(taskData)
         return true
     end
     self:setState(Bot.States.DO_QUEST)
-    -- for questName , questData in pairs(self.questHelper.activeQuest) do
-    --     if not questData.canDo then continue end
-    --     for index, taskData in pairs(questData.Tasks) do
-    --         if taskData and taskData.Type == "Defeat Monsters" and taskData.progress[1] < 1 then
-    --             local canHunt, fieldName = shared.helper.Monster:canHuntMonster(taskData.MonsterType)
-    --             if canHunt and fieldName then
-    --                 print("start hunint in loop", taskData.MonsterType)
-    --                 self.questHelper:setQuest(questData, taskData)
-    --                 return self.taskManager:doHunting()
-    --             end
-    --         end
-    --     end
-    -- end
     
-
     self.currentField = self:determineQuestField(currentTask)
     if currentTask.Type == "Collect Pollen" or currentTask.Type == "Collect Tokens" then
         return self.taskManager:doFarming()
@@ -669,6 +703,16 @@ end
 function Bot:shouldUseWealthClock()
     return self.canUseClock and self.currentState ~= Bot.States.USE_WEALTH_CLOCK
 end
+function Bot:shouldDoPlanter()
+    if not shared.main.Planter.autoPlanterEnabled then return false end
+
+    local playerHelper = shared.helper.Player
+    local canHarvestPlanter = playerHelper:getCanHarvestPlanter()
+    local planterToPlace = playerHelper:getPlanterToPlace()
+
+    return canHarvestPlanter or planterToPlace
+end
+
 
 function Bot:shouldSubmitQuest()
     local canSumit =  self.questHelper.currentQuest and self.questHelper.currentTask and self.questHelper.isCompleted
@@ -676,24 +720,23 @@ function Bot:shouldSubmitQuest()
 end
 
 function Bot:shouldDoQuest()
-    if self.plr:isCapacityFull() or 
-       not shared.main.autoQuest or 
-       self:shouldAvoidMonster() or 
-       self:shouldCollectTokens() then
+    if self.plr:isCapacityFull() or not shared.main.autoQuest or self:shouldAvoidMonster() or self:shouldCollectTokens() then
         return false
     end
+
     local q = self.questHelper
 
-    if q.currentTask and q.currentTask.Type == "Defeat Monsters" then
-        local canHunt, fieldName = shared.helper.Monster:canHuntMonster(q.currentTask.MonsterType)
-        if not canHunt or not fieldName then 
-            if self.currentState == self.States.DO_QUEST then
-                self:setState(self.States.FARMING)
-            end
-            return false
-        end
-    end
-    
+    -- if q.currentTask and q.currentTask.Type == "Defeat Monsters" then
+    --     local canHunt, fieldName = shared.helper.Monster:canHuntMonster(q.currentTask.MonsterType)
+    --     if not canHunt or not fieldName then 
+    --         if self.currentState == self.States.DO_QUEST then
+    --             self:setState(self.States.FARMING)
+    --         end
+    --         print("false here 2")
+    --         return false
+    --     end
+    -- end
+    -- print( q.currentQuest , q.currentTask , not q.isCompleted)
     return q.currentQuest and q.currentTask and not q.isCompleted
 end
 

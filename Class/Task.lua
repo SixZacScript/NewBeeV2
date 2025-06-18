@@ -4,7 +4,7 @@ local Services = {
     RunService = game:GetService("RunService"),
     ReplicatedStorage = game:GetService("ReplicatedStorage")
 }
-
+local HttpService = game:GetService("HttpService")
 local placeSprinklerEvent = game:GetService("ReplicatedStorage").Events.PlayerActivesCommand
 local TaskManager = {}
 TaskManager.__index = TaskManager
@@ -127,7 +127,106 @@ function TaskManager:doHunting()
     self.bot:setState(self.bot.States.IDLE)
     return true
 end
+function TaskManager:placePlanter()
+    local playerHelper = self.bot.plr
+    local planterToPlace = playerHelper:getPlanterToPlace() -- is slot
+    if not planterToPlace or not planterToPlace.Field then 
+        self.bot:setState(self.bot.States.IDLE)
+        return  true
+    end
 
+    local targetField = planterToPlace.Field
+    local originalFieldName = shared.helper.Field:getOriginalFieldName(targetField)
+
+
+    local fieldPart = shared.helper.Field:getField(originalFieldName)
+    local EventCmd = game:GetService("ReplicatedStorage").Events
+    local placeEvt = EventCmd.PlayerActivesCommand
+
+    local completed = false
+    local fullName = playerHelper:getPlanterFullName(planterToPlace.PlanterType)
+    playerHelper:tweenTo(fieldPart.Position + Vector3.new(0, 3, 0), 1, function()
+
+        task.wait(1)
+        placeEvt:FireServer({ Name = fullName })
+
+        completed = true
+    end)
+
+    while not completed do
+        task.wait(0.1)
+    end
+
+    self.bot:setState(self.bot.States.IDLE)
+    return true
+end
+function TaskManager:harvestPlanter()
+    local playerHelper = self.bot.plr
+    local planterToHarvest = playerHelper:getCanHarvestPlanter()
+
+    local planterPos  = planterToHarvest.Position
+    local fullName    = playerHelper:getPlanterFullName(planterToHarvest.Type)
+    local field       = shared.helper.Field:getFieldByPosition(planterPos)
+    local EventCmd    = game:GetService("ReplicatedStorage").Events
+    local harvestEvt  = EventCmd.PlanterModelCollect
+    local placeEvt    = EventCmd.PlayerActivesCommand
+    
+    -- Use a completion flag instead of coroutines
+    local completed = false
+    playerHelper:tweenTo(planterPos + Vector3.new(0, 4, 0), 1, function()
+        task.wait(1)
+        harvestEvt:FireServer(planterToHarvest.ActorID)
+
+
+        task.wait(1)
+        placeEvt:FireServer({ Name = fullName })
+
+        task.wait(1)
+        if field then
+            local tokens =  self.bot.tokenHelper:getTokensByField(field)
+            self:collectTokenByList(tokens)
+        end
+
+        completed = true
+    end)
+
+    -- Wait for completion
+    while not completed do
+        task.wait(0.1)
+    end
+
+    self.bot:setState(self.bot.States.IDLE)
+    return true
+end
+function TaskManager:collectTokenByList(tokens)
+    for _, token in ipairs(tokens) do
+        if token.instance and self.bot.plr:isValid() then
+            local humanoid = self.bot.plr.humanoid
+            if humanoid then
+                local conn
+                local reached = false
+                conn = humanoid.MoveToFinished:Connect(function()
+                    reached = true
+                end)
+
+                humanoid:MoveTo(token.position)
+
+                local startTime = tick()
+                while not reached and tick() - startTime < 5 do
+                    if not self.bot.plr:isValid() then
+                        if conn then conn:Disconnect() end
+                        return false
+                    end
+                    task.wait(0.1)
+                end
+
+                if conn then conn:Disconnect() end
+            end
+            task.wait()
+        end
+    end
+    
+end
 function TaskManager:isSprinklerPlaced(field)
     return self.placedField == field
 end
