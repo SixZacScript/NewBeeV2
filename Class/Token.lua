@@ -521,9 +521,34 @@ function TokenHelper:getBestNearbyToken()
     local playerRoot = self.player.rootPart
     local bestToken = nil
     local bestValue = math.huge
+    local availableTokens = {}
+    local targetTokenId = 1629547638 -- The token ID you want to prioritize/skip
+    local targetToken = nil
     
+    -- First pass: collect all collectable tokens and find the target token
     for _, tokenData in pairs(self.activeTokens) do
         if self:isTokenCollectable(tokenData) then
+            table.insert(availableTokens, tokenData)
+            
+            if tokenData.id == targetTokenId then
+                targetToken = tokenData
+            end
+        end
+    end
+    
+    -- If we only have the target token and no others, skip it
+    if #availableTokens == 1 and targetToken then
+        return nil
+    end
+    
+    -- If we have the target token AND other tokens, prioritize the target token
+    if targetToken and #availableTokens > 1 then
+        return targetToken
+    end
+    
+    -- Otherwise, find the best token from available tokens (excluding target token)
+    for _, tokenData in ipairs(availableTokens) do
+        if tokenData.id ~= targetTokenId then -- Skip target token in normal selection
             local value = self.useSimpleDistanceLogic 
                 and (tokenData.position - playerRoot.Position).Magnitude
                 or self:calculateSmartTokenScore(tokenData, playerRoot)

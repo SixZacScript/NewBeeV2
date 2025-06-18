@@ -283,55 +283,49 @@ function TaskManager:getSprinklerPositions(field, sprinklerData)
 
     local center = field.Position
     local count = sprinklerData.count
-    local radius = sprinklerData.radius
+    local radius = sprinklerData.radius * 2
     local fieldSize = field.Size or Vector3.new(50, 0, 50)
-    
+
     -- เช็คว่า field กว้างทางแกน X หรือ Z
-    local isWideX = fieldSize.X > fieldSize.Z  -- กว้างทางแนวนอน (X-axis)
-    local isWideZ = fieldSize.Z > fieldSize.X  -- กว้างทางแนวตั้ง (Z-axis)
+    local isWideX = fieldSize.X > fieldSize.Z
+    local isWideZ = fieldSize.Z > fieldSize.X
+
+    -- คำนวณระยะห่างแบบปรับเองได้ ถ้าไม่มีให้ fallback เป็น radius
+    local maxSpacing = math.min(fieldSize.X, fieldSize.Z) * 0.9
+    local spacing = math.min(radius * 1.5, maxSpacing)
     
-    -- คำนวณระยะห่างตามแกนที่กว้างกว่า
-    local maxSpacing = math.min(fieldSize.X, fieldSize.Z) * 0.7
-    local spacing = math.min(radius * 1.8, maxSpacing)
 
     if count == 1 then
         table.insert(positions, center)
-        
+
     elseif count == 2 then
         if isWideX then
-            -- field กว้างทาง X -> วางแนวนอน (แกน X)
             table.insert(positions, center + Vector3.new(-spacing/2, 0, 0))
             table.insert(positions, center + Vector3.new(spacing/2, 0, 0))
         elseif isWideZ then
-            -- field กว้างทาง Z -> วางแนวตั้ง (แกน Z)
             table.insert(positions, center + Vector3.new(0, 0, -spacing/2))
             table.insert(positions, center + Vector3.new(0, 0, spacing/2))
         else
-            -- field เป็นสี่เหลี่ยมจัตุรัส -> วางแนวนอนเป็นค่าเริ่มต้น
             table.insert(positions, center + Vector3.new(-spacing/2, 0, 0))
             table.insert(positions, center + Vector3.new(spacing/2, 0, 0))
         end
-        
+
     elseif count == 3 then
         if isWideX then
-            -- field กว้างทาง X -> วางเป็นแถวแนวนอน
             table.insert(positions, center + Vector3.new(-spacing, 0, 0))
             table.insert(positions, center)
             table.insert(positions, center + Vector3.new(spacing, 0, 0))
         elseif isWideZ then
-            -- field กว้างทาง Z -> วางเป็นแถวแนวตั้ง
             table.insert(positions, center + Vector3.new(0, 0, -spacing))
             table.insert(positions, center)
             table.insert(positions, center + Vector3.new(0, 0, spacing))
         else
-            -- field เป็นสี่เหลี่ยมจัตุรัส -> วางเป็นรูปสามเหลี่ยม
             table.insert(positions, center + Vector3.new(0, 0, -spacing/2))
             table.insert(positions, center + Vector3.new(-spacing/2, 0, spacing/2))
             table.insert(positions, center + Vector3.new(spacing/2, 0, spacing/2))
         end
-        
+
     elseif count == 4 then
-        -- 4 ตัว -> วางเป็นสี่เหลี่ยมเสมอ
         table.insert(positions, center + Vector3.new(-spacing/2, 0, -spacing/2))
         table.insert(positions, center + Vector3.new(spacing/2, 0, -spacing/2))
         table.insert(positions, center + Vector3.new(-spacing/2, 0, spacing/2))
@@ -340,6 +334,7 @@ function TaskManager:getSprinklerPositions(field, sprinklerData)
 
     return positions
 end
+
 
 
 function TaskManager:placeSprinklersByPosition(field, sprinklerData)

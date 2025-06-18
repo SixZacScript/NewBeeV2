@@ -2,7 +2,24 @@ local HttpService = game:GetService("HttpService")
 local Rep = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local LocalPlanters = require(Rep.LocalPlanters)
-local myPlanters = debug.getupvalue(LocalPlanters.LoadPlanter, 4)
+
+local PlanterGrowthTimes = {
+    ["Paper Planter"]        = 1  * 3600,   -- 1 h
+    ["Ticket Planter"]       = 2  * 3600,   -- 2 h
+    ["Plastic Planter"]      = 2  * 3600,   -- 2 h
+    ["Sticker Planter"]      = 3  * 3600,   -- 3 h
+    ["Festive Planter"]      = 4  * 3600,   -- 4 h
+    ["Candy Planter"]        = 4  * 3600,   -- 4 h
+    ["Red Clay Planter"]    = 6  * 3600,   -- 6 h (4.5 h if red‑field bonus applies)
+    ["Blue Clay Planter"]    = 6  * 3600,   -- 6 h (4.5 h if blue‑field bonus applies)
+    ["Tacky Planter"]        = 6  * 3600,   -- 6 h (base) – grows faster in starter zone
+    ["Pesticide Planter"]    = 10 * 3600,   -- 10 h
+    ["Heat‑Treated Planter"] = 12 * 3600,   -- 12 h
+    ["Hydroponic Planter"]   = 12 * 3600,   -- 12 h
+    ["Petal Planter"]        = 14 * 3600,   -- 14 h
+    ["Planter Of Plenty"]    = 16 * 3600,   -- 16 h
+}
+
 
 local PlayerHelper = {}
 PlayerHelper.__index = PlayerHelper
@@ -243,6 +260,14 @@ function PlayerHelper:equipMask(mask)
         Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
     end
 end
+
+function PlayerHelper:formatTime(seconds)
+    seconds = math.floor(seconds or 0)
+    local h  = math.floor(seconds / 3600)
+    local m  = math.floor((seconds % 3600) / 60)
+    local s  = seconds % 60
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
 function PlayerHelper:getSprinkler()
     if not self.EquippedSprinkler then return end
     local sprinklers = {
@@ -256,6 +281,40 @@ function PlayerHelper:getSprinkler()
     return self.EquippedSprinkler, sprinklers[self.EquippedSprinkler] 
 end
 
+function PlayerHelper:isStarterZone(fieldName)
+    local starterZones = {
+        ["Sunflower Field"] = true,
+        ["Dandelion Field"] = true,
+        ["Mushroom Field"] = true,
+        ["Clover Field"] = true
+    }
+    return starterZones[fieldName] or false
+end
+
+function PlayerHelper:getPlanterMaxGrowthTime(planter)
+    local planterType = self:getPlanterFullName(planter.Type)
+    local fieldName = shared.helper.Field:getOriginalFieldName(planter.Field)
+    local baseTime = PlanterGrowthTimes[planterType]
+    if not baseTime then return nil end
+
+    local fieldType = shared.helper.Field:getFieldTypeByName(fieldName)
+    if planterType == "Red Clay Planter" and fieldType == "Red" then
+        return baseTime * 0.75 
+    elseif planterType == "Blue Clay Planter" and fieldType == "Blue" then
+        return baseTime * 0.75 
+    elseif planterType == "Tacky Planter" and self:isStarterZone(fieldName) then
+        return baseTime * 0.5 
+    end
+
+    return baseTime
+end
+
+
+function PlayerHelper:getPlanterRemainingTime(planter)
+    local total = self:getPlanterMaxGrowthTime(planter)
+    if not total then return nil end
+    return math.max(0, total * (1 - planter.GrowthPercent))
+end
 function PlayerHelper:getPlanterFullName(shortName)
     local fullNameMap = {
         ['Paper']        = "Paper Planter",
@@ -410,6 +469,7 @@ function PlayerHelper:getEqupipedMask()
     return EquippedAccessories.Hat
     
 end
+
 function PlayerHelper:setupPlanterListener()
     task.spawn(function()
         while true do
@@ -441,6 +501,9 @@ function PlayerHelper:setupPlanterListener()
                                 else
                                     statusText = "❌ Not ready | " .. statusText
                                 end
+                                local remainingSec = self:getPlanterRemainingTime(planter)
+                                local timeStr = remainingSec and self:formatTime(remainingSec) or "--:--:--"
+                                statusText ..= string.format(" | ⏱ %s", timeStr)
 
                                 slot:SetDesc(statusText)
                             end

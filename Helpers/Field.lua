@@ -78,6 +78,11 @@ function FieldHelper:getField(fieldName)
     return FlowerZones:FindFirstChild(fieldName or self.currentField)
 end
 
+function FieldHelper:getFieldTypeByName(fieldName)
+    local data = self.fieldMap[fieldName]
+    return data and data.type
+end
+
 function FieldHelper:getAllFieldParts()
     local parts = {}
     for _, field in ipairs(self.fieldOrder) do
