@@ -208,6 +208,16 @@ function FluentUI:_createMainToggles(mainTab)
         end
     })
 
+    self.autoConvertBalloon = mainSection:AddToggle("autoConvertBalloon", {
+        Title = "Auto Convert Hive Balloon",
+        Description = "🎈 Automatically converts the hive balloon when it's available.",
+        Default = false,
+        Callback = function(val)
+            shared.main.autoConvertBalloon = val
+        end
+    })
+
+
     self.ignoreHoneyToken = mainSection:AddToggle("ignoreHoneyToken", {
         Title = "Ignore Honey Tokens",
         Default = shared.main.ignoreHoneyToken,

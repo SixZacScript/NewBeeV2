@@ -1,6 +1,7 @@
 local WP = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
 local HiveHelper = {}
 HiveHelper.__index = HiveHelper
@@ -12,7 +13,14 @@ function HiveHelper.new()
     self.CellsFolder = nil
     self.isDestroyed = false
     self._connections = {}
-    
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.O then
+            local balloonValue, blessingCount = self:getBalloon()
+            print("🎈 Balloon Value:", balloonValue, " | Blessing Count:", blessingCount)
+        end
+    end)
     return self
 end
 
@@ -180,6 +188,54 @@ function HiveHelper:isHiveValid()
     
     local currentHive = self:getMyHive()
     return currentHive ~= nil and currentHive.Parent ~= nil
+end
+
+function HiveHelper:getBalloon()
+    if not self.hive then return 0, 0 end
+
+    local balloonValue, blessingCount = 0, 0
+    local nearestDistance = 20
+    local hivePosition = self:getHivePosition()
+
+    for _, instance in ipairs(workspace.Balloons.HiveBalloons:GetChildren()) do
+        local root = instance:FindFirstChild("BalloonRoot")
+        if not (root and root:IsA("BasePart")) then continue end
+
+        local distance = (root.Position - hivePosition).Magnitude
+        if distance > nearestDistance then continue end
+
+        nearestDistance = distance
+
+        local gui = instance:FindFirstChild("BalloonBody")
+            and instance.BalloonBody:FindFirstChild("GuiAttach")
+            and instance.BalloonBody.GuiAttach:FindFirstChild("Gui")
+
+        if gui then
+            local barLabel = gui:FindFirstChild("Bar") and gui.Bar:FindFirstChild("TextLabel")
+            if barLabel then
+                local rawText = barLabel.Text
+                print("🔎 Raw Balloon Label Text:", rawText)
+                
+                local cleanedText = rawText:gsub("[^%d]", "")
+                print("🔧 Cleaned Text:", cleanedText)
+                
+                if cleanedText ~= "" then
+                    balloonValue = tonumber(cleanedText) or 0
+                    print("💰 Balloon Value:", balloonValue)
+                else
+                    print("⚠️ No digits found in text")
+                end
+            end
+
+            local blessingLabel = gui:FindFirstChild("BlessingBar")
+                and gui.BlessingBar:FindFirstChild("TextLabel")
+            if blessingLabel then
+                blessingCount = tonumber(blessingLabel.Text:match("x(%d+)")) or 0
+            end
+        end
+    end
+
+    return balloonValue, blessingCount
 end
 
 function HiveHelper:getAllBees()

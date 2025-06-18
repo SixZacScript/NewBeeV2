@@ -386,30 +386,42 @@ function TaskManager:convertPollen()
     if not self.bot.plr:isCapacityFull() then 
         return false 
     end
+
     local player = self.bot.plr
     local thread = coroutine.running()
     local bot = self.bot
+
     if shared.main.Equip.autoHoneyMask then
         player:equipMask("Honey Mask")
     end
-    
+
+    local balloonValue = 0
+    if shared.main.autoConvertBalloon then
+        balloonValue = select(1, shared.helper.Hive:getBalloon())
+    end
+
     player:tweenTo(self.hive:getHivePosition(), 1, function()
         if not bot:isRunning() then 
             warn("bot is not running")
             coroutine.resume(thread, false)
             return 
         end
-        
+
         player:disableWalking(true)
         task.wait(1)
         Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
 
         local startTime = tick()
-        local timeout = 180
-        local player = player
-        local botValid = bot:isConverting() and bot:isRunning()
-        while player.Pollen > 0 and botValid and (tick() - startTime < timeout) do
-            task.wait()
+        local timeout = 300
+        while (player.Pollen > 0 or (shared.main.autoConvertBalloon and balloonValue > 0))
+            and bot:isConverting()
+            and bot:isRunning()
+            and (tick() - startTime < timeout) do
+
+            task.wait(1)
+            if shared.main.autoConvertBalloon then
+                balloonValue = select(1, shared.helper.Hive:getBalloon())
+            end
         end
 
         if bot:isRunning() then task.wait(5) end
@@ -420,6 +432,7 @@ function TaskManager:convertPollen()
 
     return coroutine.yield()
 end
+
 
 
 

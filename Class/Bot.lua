@@ -47,7 +47,7 @@ Bot.StateDisplay = {
     DO_QUEST = "📜 Doing quest",
     SUBMITTING_QUEST = "📜 Submitting quest",
     USE_WEALTH_CLOCK = "⏱️ Using wealth clock",
-    AUTO_PLANTER = "🪴 Auto Planter",
+    AUTO_PLANTER = "⚠️ Auto Planter",
 
 }
 
