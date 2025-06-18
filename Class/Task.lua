@@ -26,7 +26,7 @@ function TaskManager.new(bot)
     self.Field = bot.Field
     self.hive = bot.Hive
     self.collectedToken = {}
-    self.placedSprinklers = {}
+    self.placedField = nil
     self.debugVisual = nil
     return self
 end
@@ -140,8 +140,9 @@ function TaskManager:doHunting()
 end
 
 function TaskManager:isSprinklerPlaced(field)
-    return self.placedSprinklers[field] == true
+    return self.placedField == field
 end
+
 
 
 function TaskManager:getDistanceFromField(field)
@@ -164,9 +165,9 @@ function TaskManager:getDistanceFromField(field)
     return nil 
 end
 
-function TaskManager:shouldPlaceSprinkler(field, sprinklerName, sprinklerCount)
+function TaskManager:shouldPlaceSprinkler(field, sprinklerName, sprinklerData)
     return sprinklerName
-        and sprinklerCount
+        and sprinklerData
         and shared.main.autoSprinkler
         and not self:isSprinklerPlaced(field)
 end
@@ -187,22 +188,72 @@ function TaskManager:waitUntilNearGround(humanoid, field, maxDistance)
     end
     return false
 end
+function TaskManager:getSprinklerPositions(field, sprinklerData)
+    local positions = {}
+    if not field or not sprinklerData then return positions end
 
-function TaskManager:placeSprinklersIfNeeded(humanoid, field, sprinklerName, sprinklerCount)
-    while self.placedCount < sprinklerCount and self.bot.plr:isValid() and self.bot:isRunning() do
+    local center = field.Position
+    local count = sprinklerData.count
+    local spacing = sprinklerData.radius * 2  -- ป้องกันชนกัน
+    local placed = 0
+
+    -- spiral layout: เริ่มจากตรงกลางแล้วค่อย ๆ วางรอบ ๆ
+    table.insert(positions, center)
+    placed += 1
+
+    local directions = {
+        Vector3.new(1, 0, 0),
+        Vector3.new(0, 0, 1),
+        Vector3.new(-1, 0, 0),
+        Vector3.new(0, 0, -1),
+    }
+
+    local layer = 1
+    while placed < count do
+        for dirIndex = 1, 4 do
+            local dir = directions[dirIndex]
+            local steps = (dirIndex % 2 == 1) and layer or layer
+
+            for i = 1, steps do
+                if placed >= count then break end
+                local offset = dir * spacing * i
+                table.insert(positions, center + offset)
+                placed += 1
+            end
+        end
+        layer += 1
+    end
+
+    return positions
+end
+
+
+function TaskManager:placeSprinklersByPosition(field, sprinklerData)
+    local humanoid = self.bot.plr.humanoid
+    local positions = self:getSprinklerPositions(field, sprinklerData)
+    local maxToPlace = sprinklerData.count
+
+    for _, pos in ipairs(positions) do
+        if self.placedCount >= maxToPlace then break end
+        if not self.bot.plr:isValid() or not self.bot:isRunning() then break end
+
+        local reached = self.bot:moveTo(pos)
+        if not reached then continue end
+
         humanoid.Jump = true
-
+        task.wait(0.25)
         self:waitUntilAirborne(humanoid)
 
-        if self:waitUntilNearGround(humanoid, field, 5) then
+        if self:waitUntilNearGround(humanoid, field, 7) then
             placeSprinklerEvent:FireServer({ Name = "Sprinkler Builder" })
-            self.placedSprinklers[field] = true
             self.placedCount += 1
+            self.placedField = field
         end
 
         task.wait(1)
     end
 end
+
 
 function TaskManager:doFarming()
     local player = self.bot.plr
@@ -211,17 +262,19 @@ function TaskManager:doFarming()
     local currentField = self.bot.currentField
     local randomPosition = shared.helper.Field:getRandomFieldPosition(currentField)
 
+    if self.placedField ~= currentField then
+        self.placedField = nil
+        self.placedCount = 0
+    end
+
     if not player:isPlayerInField(currentField) then
         self.bot.token = nil
-        self.placedCount = 0
         self:returnToField({ Position = currentField.Position, Player = player })
     end
 
-    local humanoid = player.humanoid
-    local sprinklerName, sprinklerCount = player:getSprinkler()
-
-    if self:shouldPlaceSprinkler(currentField, sprinklerName, sprinklerCount) then
-        self:placeSprinklersIfNeeded(humanoid, currentField, sprinklerName, sprinklerCount)
+    local sprinklerName, sprinklerData = player:getSprinkler()
+    if self:shouldPlaceSprinkler(currentField, sprinklerName, sprinklerData) then
+        self:placeSprinklersByPosition(currentField, sprinklerData)
     end
 
     self.bot:moveTo(randomPosition, {

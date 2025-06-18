@@ -241,11 +241,11 @@ end
 function PlayerHelper:getSprinkler()
     if not self.EquippedSprinkler then return end
     local sprinklers = {
-        ['Basic Sprinkler'] = 1,
-        ['Silver Soakers'] = 2,
-        ['Golden Gushers'] = 3,
-        ['Diamond Drenchers'] = 4,
-        ['The Supreme Saturator'] = 1,
+        ['Basic Sprinkler'] = {count = 1, radius = 7, power = 7, rate = 5},
+        ['Silver Soakers'] = {count = 2, radius = 7, power = 7, rate = 4.5},
+        ['Golden Gushers'] = {count = 3, radius = 8, power = 8, rate = 4.5},
+        ['Diamond Drenchers'] = {count = 4, radius = 8, power = 9, rate = 4},
+        ['The Supreme Saturator'] =  {count = 1, radius = 16, power = 10, rate = 1},
     }
 
     return self.EquippedSprinkler, sprinklers[self.EquippedSprinkler] 
