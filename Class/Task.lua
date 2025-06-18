@@ -7,6 +7,7 @@ local Services = {
 local Folders = {
     Monsters = Services.Workspace:FindFirstChild("Monsters")
 }
+local placeSprinklerEvent = game:GetService("ReplicatedStorage").Events.PlayerActivesCommand
 local TaskManager = {}
 TaskManager.__index = TaskManager
 
@@ -25,6 +26,7 @@ function TaskManager.new(bot)
     self.Field = bot.Field
     self.hive = bot.Hive
     self.collectedToken = {}
+    self.placedSprinklers = {}
     self.debugVisual = nil
     return self
 end
@@ -137,27 +139,96 @@ function TaskManager:doHunting()
     return true
 end
 
+function TaskManager:isSprinklerPlaced(field)
+    return self.placedSprinklers[field] == true
+end
+
+
+function TaskManager:getDistanceFromField(field)
+    local player = self.bot.plr
+    if not player.rootPart or not field then return nil end
+
+    local origin = player.rootPart.Position
+    local direction = Vector3.new(0, -100, 0)
+
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {field}
+    params.FilterType = Enum.RaycastFilterType.Include
+
+    local result = workspace:Raycast(origin, direction, params)
+
+    if result and result.Instance == field then
+        return (origin - result.Position).Magnitude
+    end
+
+    return nil 
+end
+
+function TaskManager:shouldPlaceSprinkler(field, sprinklerName, sprinklerCount)
+    return sprinklerName
+        and sprinklerCount
+        and shared.main.autoSprinkler
+        and not self:isSprinklerPlaced(field)
+end
+
+function TaskManager:waitUntilAirborne(humanoid)
+    while humanoid.FloorMaterial ~= Enum.Material.Air and humanoid.Parent do
+        task.wait()
+    end
+end
+
+function TaskManager:waitUntilNearGround(humanoid, field, maxDistance)
+    while humanoid.FloorMaterial == Enum.Material.Air and humanoid.Parent do
+        local distance = self:getDistanceFromField(field)
+        if distance and distance <= maxDistance then
+            return true
+        end
+        task.wait()
+    end
+    return false
+end
+
+function TaskManager:placeSprinklersIfNeeded(humanoid, field, sprinklerName, sprinklerCount)
+    while self.placedCount < sprinklerCount and self.bot.plr:isValid() and self.bot:isRunning() do
+        humanoid.Jump = true
+
+        self:waitUntilAirborne(humanoid)
+
+        if self:waitUntilNearGround(humanoid, field, 5) then
+            placeSprinklerEvent:FireServer({ Name = "Sprinkler Builder" })
+            self.placedSprinklers[field] = true
+            self.placedCount += 1
+        end
+
+        task.wait(1)
+    end
+end
+
 function TaskManager:doFarming()
     local player = self.bot.plr
     if not player then return false end
-    local currentField = self.bot.currentField
 
+    local currentField = self.bot.currentField
     local randomPosition = shared.helper.Field:getRandomFieldPosition(currentField)
+
     if not player:isPlayerInField(currentField) then
         self.bot.token = nil
+        self.placedCount = 0
         self:returnToField({ Position = currentField.Position, Player = player })
     end
-    
-    self.bot:moveTo(randomPosition, {
-        timeout = 5,
-        onBreak = function(breakFunc)
-            local runService = game:GetService("RunService")
-            local tokenCheckConnection
 
-            tokenCheckConnection = runService.Heartbeat:Connect(function()
-                if tokenCheckConnection then
-                    tokenCheckConnection:Disconnect()
-                end
+    local humanoid = player.humanoid
+    local sprinklerName, sprinklerCount = player:getSprinkler()
+
+    if self:shouldPlaceSprinkler(currentField, sprinklerName, sprinklerCount) then
+        self:placeSprinklersIfNeeded(humanoid, currentField, sprinklerName, sprinklerCount)
+    end
+
+    self.bot:moveTo(randomPosition, {
+        timeout = 3,
+        onBreak = function(breakFunc)
+            local tokenCheckConnection
+            tokenCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
                 if self.bot.token then
                     if tokenCheckConnection then tokenCheckConnection:Disconnect() end
                     breakFunc()
@@ -165,6 +236,7 @@ function TaskManager:doFarming()
             end)
         end
     })
+
     return true
 end
 

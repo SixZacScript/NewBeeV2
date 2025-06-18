@@ -108,6 +108,14 @@ function FluentUI:initMainTab()
         Default = false
     })
 
+    self.autoSprinkler = self.Tabs.Main:AddToggle("autoSprinkler", {
+        Title = "💧 Auto Sprinkler",
+        Default = false,
+        Callback = function(val)
+            shared.main.autoSprinkler = val
+        end
+    })
+
     self.ignoreHoneyToken = self.Tabs.Main:AddToggle("ignoreHoneyToken", {
         Title = "🍯 Ignore Honey Tokens",
         Default = shared.main.ignoreHoneyToken,

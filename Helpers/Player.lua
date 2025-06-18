@@ -238,7 +238,18 @@ function PlayerHelper:equipMask(mask)
         Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
     end
 end
+function PlayerHelper:getSprinkler()
+    if not self.EquippedSprinkler then return end
+    local sprinklers = {
+        ['Basic Sprinkler'] = 1,
+        ['Silver Soakers'] = 2,
+        ['Golden Gushers'] = 3,
+        ['Diamond Drenchers'] = 4,
+        ['The Supreme Saturator'] = 1,
+    }
 
+    return self.EquippedSprinkler, sprinklers[self.EquippedSprinkler] 
+end
 function PlayerHelper:getPlayerStats()
     local success, plrStats = pcall(function()
         local RetrievePlayerStats = Rep.Events.RetrievePlayerStats
@@ -251,6 +262,7 @@ function PlayerHelper:getPlayerStats()
     self.plrStats = plrStats
     self.Honeycomb = plrStats.Honeycomb
     self.Accessories = plrStats.Accessories or {}
+    self.EquippedSprinkler = plrStats.EquippedSprinkler
 
     writefile("playerStats.json", HttpService:JSONEncode(plrStats))
     return self.plrStats

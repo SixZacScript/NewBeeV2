@@ -11,7 +11,7 @@ Bot.__index = Bot
 
 -- Configuration
 Bot.Config = {
-    UPDATE_INTERVAL = 0.1,
+    UPDATE_INTERVAL = 0.05,
     MOVEMENT_THRESHOLD = 4,
     MOVEMENT_TIMEOUT = 5,
     TOKEN_UPDATE_DISTANCE = 5,
@@ -245,12 +245,21 @@ function Bot:setupRealtime()
         if self.currentField ~= currentField and not self:isBusy() then
             self.currentField = currentField
         end
-        
+
+        if not shared.main.autoQuest and self.currentState == self.States.DO_QUEST then
+            self:setState(self.States.IDLE)
+        end
+
         -- Update token position only if player moved significantly
         if self.plr and self.plr.rootPart then
             local pos = self.plr.rootPart.Position
-            if not self.lastTokenUpdatePos or 
-               (pos - self.lastTokenUpdatePos).Magnitude > Bot.Config.TOKEN_UPDATE_DISTANCE then
+            
+            -- ใช้ distance check ที่เรียบง่าย
+            local shouldUpdateToken = not self.lastTokenUpdatePos or 
+                                    math.abs(pos.X - self.lastTokenUpdatePos.X) > Bot.Config.TOKEN_UPDATE_DISTANCE or
+                                    math.abs(pos.Z - self.lastTokenUpdatePos.Z) > Bot.Config.TOKEN_UPDATE_DISTANCE
+            
+            if shouldUpdateToken then
                 self.token = self.tokenHelper:getBestNearbyToken(pos)
                 self.lastTokenUpdatePos = pos
             end
@@ -273,35 +282,7 @@ function Bot:start()
     self:setupDeathHandler()
 end
 
-function Bot:stop()
-    self.isStart = false
-    self.token = nil
-    self:setState(Bot.States.STOP, true)
-    
-    if self.mainLoopThread then
-        task.cancel(self.mainLoopThread)
-        self.mainLoopThread = nil
-    end
-    
-    if self.plr then
-        self.plr:stopMoving()
-        self.plr:equipMask()
-    end
-end
 
-function Bot:setupDeathHandler()
-    if self.connections.died then 
-        self.connections.died:Disconnect() 
-    end
-    
-    local humanoid = self.plr:getHumanoid()
-    if humanoid then
-        self.connections.died = humanoid.Died:Connect(function()
-            warn("⚰️ Player died. Resetting bot.")
-            self:onPlayerDied()
-        end)
-    end
-end
 
 -- Main Loop
 function Bot:mainLoopRunner()
@@ -329,6 +310,37 @@ function Bot:runMainLoop()
     self:checkForNewTasks()
 end
 
+function Bot:stop()
+    self.isStart = false
+    self.token = nil
+    self.taskQueue = {} -- ✅ Clear all pending tasks immediately
+    self:setState(Bot.States.STOP, true)
+
+    if self.mainLoopThread then
+        task.cancel(self.mainLoopThread)
+        self.mainLoopThread = nil
+    end
+
+    if self.plr then
+        self.plr:stopMoving()
+        self.plr:equipMask()
+    end
+end
+
+
+function Bot:setupDeathHandler()
+    if self.connections.died then 
+        self.connections.died:Disconnect() 
+    end
+    
+    local humanoid = self.plr:getHumanoid()
+    if humanoid then
+        self.connections.died = humanoid.Died:Connect(function()
+            warn("⚰️ Player died. Resetting bot.")
+            self:onPlayerDied()
+        end)
+    end
+end
 -- Task Processing
 function Bot:processTask(taskData)
     if not taskData or not taskData.type then return true end
@@ -381,21 +393,23 @@ function Bot:evaluateConditions()
     }
 end
 
--- Optimized Task Queue with Binary Search
 function Bot:addTask(task)
-    if not task.priority then task.priority = 999 end
-    
-    -- Binary search insertion for better performance
-    local left, right = 1, #self.taskQueue + 1
-    while left < right do
-        local mid = math.floor((left + right) / 2)
-        if task.priority < self.taskQueue[mid].priority then
-            right = mid
-        else
-            left = mid + 1
-        end
+    -- ใช้ simple priority check แทน binary search
+    if #self.taskQueue == 0 then
+        table.insert(self.taskQueue, task)
+        return
     end
-    table.insert(self.taskQueue, left, task)
+    
+    -- หา priority สูงสุดที่มีอยู่
+    local highestPriority = self.taskQueue[1].priority or 999
+    
+    if (task.priority or 999) < highestPriority then
+        -- priority สูงกว่า ใส่หน้าสุด
+        table.insert(self.taskQueue, 1, task)
+    else
+        -- priority ต่ำกว่า ใส่ท้ายสุด
+        table.insert(self.taskQueue, task)
+    end
 end
 
 -- Task Handlers
@@ -598,10 +612,10 @@ function Bot:moveTo(targetPosition, options)
     
     humanoid:MoveTo(targetPosition)
     
-    return self:waitForMovement(targetPosition, timeout, options.onBreak)
+    return self:waitForMovement(timeout, options.onBreak)
 end
 
-function Bot:waitForMovement(targetPosition, timeout, onBreak)
+function Bot:waitForMovement(timeout, onBreak)
     local startTime = tick()
     local finished = false
     local broken = false
@@ -625,20 +639,20 @@ function Bot:waitForMovement(targetPosition, timeout, onBreak)
         if tick() - startTime > timeout then
             self:cleanupConnections(connections)
             warn("⏱️ MoveTo timeout")
-            return false
+            return true
         end
         
         if not self:validatePlayer() then
             self:cleanupConnections(connections)
             warn("Player became invalid during movement")
-            return false
+            return true
         end
         
         task.wait()
     end
     
     self:cleanupConnections(connections)
-    return finished and not broken
+    return true
 end
 
 function Bot:cleanupConnections(connections)
