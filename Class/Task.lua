@@ -409,17 +409,8 @@ function TaskManager:convertPollen()
         player:equipMask("Honey Mask")
     end
 
-    local balloonValue = 0
-    local balloonBlessing = 0
+    local balloonValue, balloonBlessing = shared.helper.Hive:getBalloonData()
     local blessingThreshold = shared.main.convertAtBlessing or 1
-
-    if shared.main.autoConvertBalloon then
-        balloonValue, balloonBlessing = shared.helper.Hive:getBalloon()
-        balloonValue = balloonValue or 0
-        balloonBlessing = balloonBlessing or 0
-
-    end
-
     player:tweenTo(self.hive:getHivePosition(), 1, function()
         if not bot:isRunning() then 
             warn("bot is not running")
@@ -444,9 +435,6 @@ function TaskManager:convertPollen()
                 balloonValue = balloonValue or 0
                 balloonBlessing = balloonBlessing or 0
             end
-        end
-        if shared.main.autoConvertBalloon then
-            Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
         end
         if bot:isRunning() then task.wait(4) end
 

@@ -105,7 +105,7 @@ function FluentUI:_createTabs()
         {name = "Quest", title = "Quest", icon = "book"},
         {name = "Planter", title = "Planter", icon = "sprout"},
         {name = "Hive", title = "Hive", icon = "circle"},
-        {name = "Combat", title = "Combat", icon = "sword"},
+        -- {name = "Combat", title = "Combat", icon = "sword"},
         {name = "Settings", title = "Settings", icon = "settings"}
     }
     
@@ -123,7 +123,7 @@ function FluentUI:_initializeAllTabs()
     self:_initPlanterTab()
     self:_initQuestTab()
     self:_initHiveTab()
-    self:_initCombatTab()
+    -- self:_initCombatTab()
     self:_initSettingsTab()
 end
 

@@ -181,8 +181,11 @@ function HiveHelper:isHiveValid()
     return currentHive ~= nil and currentHive.Parent ~= nil
 end
 
-function HiveHelper:getBalloon()
+function HiveHelper:getBalloonData()
     if not self.hive then return 0, 0 end
+    if not shared.main.autoConvertBalloon then
+        return 0, 0
+    end
 
     local balloonValue, blessingCount = 0, 0
     local nearestDistance = 20

@@ -42,7 +42,7 @@ shared.main = {
 
     -- Balloon Section
     autoConvertBalloon = false,
-    convertAtBlessing = false,
+    convertAtBlessing = 1,
     
     statusText = GUIHelper:createStatus(),
     Monster = {
