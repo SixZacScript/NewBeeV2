@@ -182,10 +182,21 @@ end
 function TaskManager:collectTokenByList(tokens)
     local botPos = self.bot.plr:getPosition()
 
-    table.sort(tokens, function(a, b)
-        return (a.position - botPos).Magnitude < (b.position - botPos).Magnitude
-    end)
-
+    local function getSortedValidTokens(tokenList, playerPos)
+        local validTokens = {}
+        for _, token in ipairs(tokenList) do
+            if token and token.position and token.instance then
+                table.insert(validTokens, token)
+            end
+        end
+        
+        table.sort(validTokens, function(a, b)
+            return (a.position - playerPos).Magnitude < (b.position - playerPos).Magnitude
+        end)
+        
+        return validTokens
+    end
+    tokens = getSortedValidTokens(tokens, botPos)
     for _, token in ipairs(tokens) do
         if token.instance and self.bot.plr:isValid() then
             local humanoid = self.bot.plr.humanoid
@@ -213,9 +224,7 @@ function TaskManager:collectTokenByList(tokens)
             task.wait()
 
             botPos = self.bot.plr:getPosition()
-            table.sort(tokens, function(a, b)
-                return (a.position - botPos).Magnitude < (b.position - botPos).Magnitude
-            end)
+            tokens = getSortedValidTokens(tokens, botPos)
         end
     end
 end
