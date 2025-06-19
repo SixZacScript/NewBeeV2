@@ -350,8 +350,10 @@ function Bot:setupDeathHandler()
     local humanoid = self.plr:getHumanoid()
     if humanoid then
         self.connections.died = humanoid.Died:Connect(function()
-            warn("⚰️ Player died. Resetting bot.")
-            self:onPlayerDied()
+            if self.isStart then
+                warn("⚰️ Player died. Resetting bot.")
+                self:onPlayerDied()
+            end
         end)
     end
 end
