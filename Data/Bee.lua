@@ -131,41 +131,77 @@ function BeeModule:doJelly(X, Y)
     end
 end
 
+function BeeModule:getGiftedBees()
+    local giftedBees = {}
+    local maxX, maxY = 5, 10
+
+    for x = 1, maxX do
+        for y = 1, maxY do
+            local cellModel = shared.helper.Hive:getCellByXY(x, y)
+            if cellModel and cellModel:FindFirstChild("GiftedCell") and cellModel:FindFirstChild("CellType") then
+                local beeName = cellModel.CellType.Value
+                giftedBees[self:normalizeName(beeName)] = true
+            end
+        end
+    end
+
+    return giftedBees
+end
+
 function BeeModule:startAutoJelly()
     if self._jellyThread and coroutine.status(self._jellyThread) ~= "dead" then return end
-    
+
     local autoJelly = shared.main.autoJelly
     local X, Y = autoJelly.X, autoJelly.Y
     local selectedTypes = autoJelly.selectedTypes
     local cellModel = shared.helper.Hive:getCellByXY(X, Y)
-    
+
     if not cellModel then return self:stopAutoJelly("Unknown cell.") end
     self.jellyCount = 0
     autoJelly.isRunning = true
+
     self._jellyThread = coroutine.create(function()
+        local ownedGifted = self:getGiftedBees()
+
         while autoJelly.isRunning do
             if autoJelly.X ~= X or autoJelly.Y ~= Y then 
                 return self:stopAutoJelly("Cell changed while auto jelly was running.") 
             end
-            -- local startTime = tick()
+
             local jellyCount = self:doJelly(X, Y)
             task.wait(0.25)
-            
+
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
             local beeName = cellModel.CellType.Value
-            local beeRarity = self:getBeeRarity(self:normalizeName(beeName))
-            
-            local isTargetBee = self:isBeeSelected(beeName) or table.find(selectedTypes, beeRarity) or (autoJelly.anyGifted and hasGiftedCell)
-            
-            if isTargetBee then return self:stopAutoJelly("✅Found target bee✅") end
-            if jellyCount <= 0 then return self:stopAutoJelly("Out of jelly") end
+            local normalizedName = self:normalizeName(beeName)
+            local beeRarity = self:getBeeRarity(normalizedName)
+
+            local isTargetBee = self:isBeeSelected(beeName) or table.find(selectedTypes, beeRarity)
+
+            if not isTargetBee then
+                if autoJelly.anyGifted and hasGiftedCell then
+                    isTargetBee = true
+                elseif shared.main.autoJelly.newGifted and hasGiftedCell and not ownedGifted[normalizedName] then
+                    isTargetBee = true
+                end
+            end
+
+            if isTargetBee then
+                return self:stopAutoJelly("✅ Found target bee. | Total jelly used: " .. self.jellyCount)
+            end
+
+            if jellyCount <= 0 then
+                return self:stopAutoJelly("Out of jelly")
+            end
         end
+
         self._jellyThread = nil
     end)
-    
+
     coroutine.resume(self._jellyThread)
 end
+
 
 function BeeModule:stopAutoJelly(reason)
     self.jellyCount = 0

@@ -589,7 +589,7 @@ function Bot:handleWealthClock(taskData)
     self:setState(Bot.States.USE_WEALTH_CLOCK)
     
     local clockPos = Vector3.new(330.5519104003906, 48.43824005126953, 191.44041442871094)
-    
+    local completed = false
     self.plr:tweenTo(clockPos, 1, function()
         task.wait(1)
         
@@ -600,10 +600,15 @@ function Bot:handleWealthClock(taskData)
         
         task.wait(1)
         self.canUseClock = false
+        completed = true
         self:setState(Bot.States.IDLE)
     end)
-    
-    return not self.canUseClock
+
+    while not completed and self.isStart do
+        task.wait(1)
+    end
+
+    return true
 end
 
 -- Helper Methods

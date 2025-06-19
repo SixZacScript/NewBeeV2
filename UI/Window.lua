@@ -141,7 +141,7 @@ end
 function FluentUI:_setIgnoreIndexes(saveManager)
     saveManager:SetIgnoreIndexes({
         "jellySelectedBee", "jellySelectedRare", "jellyRowPos", "jellyColumnPos",
-        "jellyAnyGifted", "rowPos", "columnPos", "feedAmount", "foodType"
+        "jellyAnyGifted","jellyNewGifted", "rowPos", "columnPos", "feedAmount", "foodType"
     })
 end
 
@@ -383,13 +383,17 @@ function FluentUI:_createEquipmentControls(section)
             shared.main.Equip.autoHoneyMask = val
         end
     })
-    
+    local playerHelper = shared.helper.Player
+    local equipedMask = playerHelper:getEqupipedMask()
+    local maskIndex =  playerHelper:getMaskIndex(equipedMask)
     self.defaultMask = section:AddDropdown("defaultMask", {
         Title = "Default mask",
-        Values = shared.helper.Player:getPlayerMasks(),
+        Values = playerHelper:getPlayerMasks(),
         Multi = false,
+        Default = maskIndex,
         Callback = function(mask)
             shared.main.Equip.defaultMask = mask
+            playerHelper:equipMask(mask)
         end
     })
 end
@@ -557,15 +561,33 @@ function FluentUI:_createAutoJellyControls(section)
     -- Position Inputs
     self:_createPositionInputs(section, "jelly")
     
-    -- Gifted Toggle
+    -- Any Gifted Toggle
     self.jellyAnyGifted = section:AddToggle("jellyAnyGifted", {
         Title = "Stop at Any Gifted Bee",
+        Description = "🟡 Stops auto jelly when any bee becomes gifted, even if it's already owned.",
         Default = false,
         Callback = function(value)
             shared.main.autoJelly.anyGifted = value
+            if value and self.jellyNewGifted then
+                self.jellyNewGifted:SetValue(false)
+            end
         end
     })
-    
+
+    -- New Gifted Toggle
+    self.jellyNewGifted = section:AddToggle("jellyNewGifted", {
+        Title = "Stop at New Gifted Bee",
+        Description = "🟣 Stops auto jelly only if the gifted bee is new and not already owned.",
+        Default = false,
+        Callback = function(value)
+            shared.main.autoJelly.newGifted = value
+            if value and self.jellyAnyGifted then
+                self.jellyAnyGifted:SetValue(false)
+            end
+        end
+    })
+
+
     -- Start/Stop Button
     self:_createJellyStartButton(section)
 end

@@ -1,8 +1,5 @@
 local WP = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
-
 local HiveHelper = {}
 HiveHelper.__index = HiveHelper
 
@@ -14,13 +11,7 @@ function HiveHelper.new()
     self.isDestroyed = false
     self._connections = {}
 
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.O then
-            local balloonValue, blessingCount = self:getBalloon()
-            print("🎈 Balloon Value:", balloonValue, " | Blessing Count:", blessingCount)
-        end
-    end)
+
     return self
 end
 

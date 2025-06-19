@@ -253,13 +253,6 @@ function PlayerHelper:isPlayerInField(field)
     return distance <= fieldRadius
 end
 
-function PlayerHelper:equipMask(mask)
-    if not mask and shared.main.Equip.defaultMask then mask = shared.main.Equip.defaultMask end
-    if table.find(self.plrStats.Accessories, mask) and mask then
-        local Event = game:GetService("ReplicatedStorage").Events.ItemPackageEvent
-        Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
-    end
-end
 
 function PlayerHelper:formatTime(seconds)
     seconds = math.floor(seconds or 0)
@@ -429,6 +422,14 @@ function PlayerHelper:getPlayerStats()
     return self.plrStats
 end
 
+function PlayerHelper:equipMask(mask)
+    if not mask and shared.main.Equip.defaultMask then mask = shared.main.Equip.defaultMask end
+    if table.find(self.plrStats.Accessories, mask) and mask then
+        local Event = game:GetService("ReplicatedStorage").Events.ItemPackageEvent
+        Event:InvokeServer("Equip", {Category = "Accessory", Type = mask})
+    end
+end
+
 function PlayerHelper:getPlayerMasks()
     local masks = {
         "Helmet", "Propeller Hat", "Beekeeper's Mask",
@@ -465,9 +466,7 @@ end
 function PlayerHelper:getEqupipedMask()
     local plrStats = self:getPlayerStats()
     local EquippedAccessories = plrStats.EquippedAccessories
-
     return EquippedAccessories.Hat
-    
 end
 
 function PlayerHelper:setupPlanterListener()

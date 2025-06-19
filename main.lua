@@ -89,6 +89,7 @@ shared.main = {
         selectedTypes = {},
         selectedBees = {},
         anyGifted = false,
+        newGifted = false,
         isRunning = false,
     }
 }
