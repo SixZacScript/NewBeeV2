@@ -96,33 +96,56 @@ function MonsterHelper:setupListener()
         end
     end)
 
-    local monsterList = {"Ladybug", "Rhino Beetle", "Spider", "Mantis", "Werewolf"}
+    local monsterList = { "Ladybug", "Rhino Beetle","Spider", "Mantis", "Werewolf", "Scorpion"}
     task.spawn(function()
         while true do
             local monsters = self:getMonsterTime()
+            self.availableMonsters = {}
+            local spawnedTypes = {}
+            local cooldownTimes = {}
             local lines = {}
 
-            for _, monsterName in ipairs(monsterList) do
-                local data = monsters[monsterName]
-                if data then
-                    if data.isSpawned then
-                        self.availableMonsters[monsterName] = data
-                        table.insert(lines, string.format("%s | 🟢", monsterName))
+            -- เช็ค spawn และเก็บเวลาที่น้อยที่สุดของแต่ละ monsterType
+            for fieldName, fieldMonsters in pairs(monsters) do
+                for _, monsterData in ipairs(fieldMonsters) do
+                    if not table.find(monsterList, monsterData.monsterType) then continue end
+                    local mt = monsterData.monsterType
+                    if monsterData.isSpawned then
+                        spawnedTypes[mt] = true
+                        if not self.availableMonsters[mt] then
+                            self.availableMonsters[mt] = {monsterData}
+                        else
+                            table.insert(self.availableMonsters[mt], monsterData)
+                        end
                     else
-                        table.insert(lines, string.format("%s | %s | 🔴", monsterName, data.time))
+                        if not cooldownTimes[mt] or monsterData.time < cooldownTimes[mt] then
+                            cooldownTimes[mt] = monsterData.time
+                        end
                     end
-                else
-                    table.insert(lines, string.format("%s | N/A | 🔴", monsterName))
                 end
             end
 
+            -- สร้างบรรทัดแสดงผล
+            for mt, _ in pairs(spawnedTypes) do
+                table.insert(lines, string.format("🟢 | %s ", mt))
+            end
+
+            for mt, time in pairs(cooldownTimes) do
+                if not spawnedTypes[mt] then
+                    table.insert(lines, string.format("🔴 | %s", time))
+                end
+            end
+
+            -- แสดงผล
             if shared.Fluent and shared.Fluent.monsterStatusInfo then
                 shared.Fluent.monsterStatusInfo:SetDesc(table.concat(lines, "\n"))
             end
-                
+
             task.wait(1)
         end
     end)
+
+
 
 
 end
@@ -154,7 +177,6 @@ end
 
 function MonsterHelper:getMonsterTime()
     local monsters = {}
-
     for _, spawner in ipairs(MonsterSpawnersFolder:GetChildren()) do
         local monsterTypeObj = spawner:FindFirstChild("MonsterType")
         local attachment = spawner:FindFirstChildWhichIsA("Attachment")
@@ -163,31 +185,40 @@ function MonsterHelper:getMonsterTime()
             local timerLabel = attachment:FindFirstChild("TimerGui") and attachment.TimerGui:FindFirstChild("TimerLabel")
 
             if timerLabel then
+                local key = spawnerKey[spawner.Name]
                 local isSpawned = not timerLabel.Visible
-                local current = monsters[monsterType]
-
-                if not current then
-                    monsters[monsterType] = {
-                        isSpawned = false,
-                        time = timerLabel.Text,
-                        field = spawnerKey[spawner.Name] -- เพิ่มฟิลด์นี้
-                    }
+                
+                if not key then continue end
+                if not monsters[key] then
+                    monsters[key] = {}
                 end
 
-                if isSpawned then
-                    monsters[monsterType].isSpawned = true
-                    monsters[monsterType].time = "00:00"
-                    monsters[monsterType].field = spawnerKey[spawner.Name] -- อัปเดตฟิลด์ถ้ามีการเกิด
-                else
-                    if not monsters[monsterType].isSpawned then
-                        monsters[monsterType].time = timerLabel.Text
-                        monsters[monsterType].field = spawnerKey[spawner.Name]
+                local updated = false
+                for _, entry in ipairs(monsters[key]) do
+                    if entry.spawner == spawner.Name then
+                        -- Update existing entry
+                        entry.isSpawned = isSpawned
+                        entry.time = isSpawned and "00:00" or timerLabel.Text
+                        entry.timerLabel = timerLabel
+                        entry.spawner = spawner.Name
+                        updated = true
+                        break
                     end
+                end
+
+                if not updated then
+                    table.insert(monsters[key], {
+                        monsterType = monsterType,
+                        isSpawned = isSpawned,
+                        time = isSpawned and "00:00" or timerLabel.Text,
+                        field = key,
+                        timerLabel = timerLabel,
+                        spawner = spawner.Name
+                    })
                 end
             end
         end
     end
-
     return monsters
 end
 
@@ -218,6 +249,52 @@ function MonsterHelper:canHuntMonster(monsterName)
     end
     if #canHuntMonster > 0 then return true , canHuntMonster[1] end
     return false, nil
+end
+
+function MonsterHelper:getAvailableMonster()
+    local availableMonsters = self.availableMonsters or {}
+    local targetMonsters = shared.main.Monster.monsters or {}
+
+    for _, targetName in pairs(targetMonsters) do
+        local monster = availableMonsters[targetName]
+        if monster then return monster end
+    end
+
+    return nil
+end
+function MonsterHelper:getDistanceToMonster(monsterModel)
+    local player = game.Players.LocalPlayer
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    
+    local playerPosition = player.Character.HumanoidRootPart.Position
+    local monsterRootPart = monsterModel.PrimaryPart
+    
+    if not monsterRootPart then
+        return nil
+    end
+    local newPosMonster = Vector3.new(monsterRootPart.Position.X, playerPosition.Y, monsterRootPart.Position.Z)
+    return (playerPosition - newPosMonster).Magnitude
+end
+
+function MonsterHelper:getMonsterModel(typeName)
+    local targetTypeName = string.lower(typeName:gsub("%s+", ""))
+    local localPlayerCharacter = game.Players.LocalPlayer.Character
+    for _, monster in pairs(MonstersFolder:GetChildren()) do
+        if monster:IsA("Model")  then
+            local monsterType = monster:FindFirstChild("MonsterType")
+            local targetObject = monster:FindFirstChild("Target")
+            
+            if monsterType and targetObject then
+                if targetObject.Value == localPlayerCharacter and string.lower(monsterType.Value:gsub("%s+", "")) == targetTypeName then
+                    return monster
+                end
+            end
+        end
+    end
+    
+    return nil
 end
 
 function MonsterHelper:destroy()

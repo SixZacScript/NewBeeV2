@@ -541,7 +541,10 @@ function FluentUI:_initCombatTab()
     self.autoHuntMonster = combatTab:AddToggle("autoHuntMonster", {
         Title = "Auto Hunt Monsters",
         Description = "⚔️ Automatically hunts spawned monsters on the map.",
-        Default = false
+        Default = false,
+        Callback = function(val)
+            shared.main.Monster.autoHunt = val
+        end
     })
 
     local monsterToHuntSection = combatTab:AddSection("Monsters to hunt")
@@ -557,7 +560,7 @@ function FluentUI:_initCombatTab()
                 table.insert(monsters, monsterName)
             end
             shared.main.Monster.monsters = monsters
-            print(HttpService:JSONEncode(monsters))
+            -- print(HttpService:JSONEncode(monsters))
         end
     })
     local monsterStatusSection = combatTab:AddSection("Monsters Status")
@@ -568,7 +571,8 @@ function FluentUI:_initCombatTab()
             "Ladybug: 🔴 Cooldown", 
             "Rhino Beetle: 🔴 Cooldown", 
             "Mantis: 🔴 Cooldown", 
-            "Werewolf: 🔴 Cooldown"
+            "Werewolf: 🔴 Cooldown",
+            "Scorpion: 🔴 Cooldown",
         }, "\n")
     })
 end

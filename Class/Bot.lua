@@ -1,4 +1,5 @@
 -- Services
+local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TaskManager = shared.ModuleLoader:load(_G.URL.."/Class/Task.lua")
@@ -88,20 +89,13 @@ Bot.StateMachine = {
         Bot.States.STOP,
     },
     [Bot.States.AVOID_MONSTER] = {
-        Bot.States.FARMING,
         Bot.States.DO_QUEST,
-        Bot.States.COLLECTING,
-        Bot.States.USE_WEALTH_CLOCK,
-        Bot.States.AUTO_PLANTER,
-        Bot.States.IDLE,
-        Bot.States.STOP
+        Bot.States.COLLECTING,  
+        unpack(commonTransitions)
     },
     [Bot.States.KILL_MONSTER] = {
-        Bot.States.FARMING,
         Bot.States.DO_QUEST,
-        Bot.States.USE_WEALTH_CLOCK,
-        Bot.States.AUTO_PLANTER,
-        Bot.States.STOP
+        unpack(commonTransitions)
     },
     [Bot.States.DO_QUEST] = {
         Bot.States.CONVERTING,
@@ -532,11 +526,50 @@ function Bot:handleAvoidMonsterTask(taskData)
     return true
 end
 
-function Bot:handleKillMonsterTask(taskData)
-    self:setState(Bot.States.KILL_MONSTER)
-    -- TODO: Implement monster killing logic
-    return false
+function Bot:handleKillMonsterTask()
+    self:setState(self.States.KILL_MONSTER)
+    local MonsterList = shared.helper.Monster:getAvailableMonster()
+    local monsterInField = {}
+
+    for _, monster in pairs(MonsterList) do
+        if not monsterInField[monster.field] then monsterInField[monster.field] = {} end
+        table.insert(monsterInField[monster.field], monster)
+    end
+
+    for fieldName, monsters  in pairs(monsterInField) do
+        local fieldPart = shared.helper.Field:getField(fieldName)
+        self.taskManager:returnToField({Position = fieldPart.Position, Player = self.plr})
+        task.wait(0.5)
+        for index, monster in pairs(monsters) do
+            local startTime = tick()
+            repeat
+                local targetModel = shared.helper.Monster:getMonsterModel(monster.monsterType)
+                if targetModel  and (monster and fieldPart.Name == "Pine Tree Forest") then
+                    local distance = shared.helper.Monster:getDistanceToMonster(targetModel)
+                    if distance and distance > 30 then
+                        local root = self.plr.rootPart
+                        local direction = (targetModel.PrimaryPart.Position - root.Position).Unit
+                        local nextPos = root.Position + direction * 10
+                        self.plr.humanoid:MoveTo(nextPos)
+                    end
+                end
+                self.plr.humanoid.Jump = true
+                task.wait(1.5)
+            until monster.timerLabel.Visible or not self.isStart
+        end
+        
+        if self.isStart then task.wait(1) end
+        local tokens = self.tokenHelper:getTokensByField(fieldPart)
+        if #tokens > 0 then
+            self.taskManager:collectTokenByList(tokens)
+        end
+
+    end
+
+    self:setState(self.States.IDLE)
+    return true
 end
+
 
 function Bot:handleDoingQuest(taskData)
     local currentQuest = self.questHelper.currentQuest
@@ -746,7 +779,10 @@ function Bot:shouldDoQuest()
 end
 
 function Bot:shouldKillMonster()
-    -- TODO: Implement monster killing logic
+    if not shared.main.Monster.autoHunt then return false end
+    local monsters = shared.helper.Monster:getAvailableMonster()
+    if monsters then return true end
+    
     return false
 end
 

@@ -504,15 +504,6 @@ function TokenHelper:_updateCollectedStats(token)
     stats.last_collected_at = os.time()
     self.collectedTokenData[tokenID] = stats
     
-    -- Save data with error handling
-    local success, err = pcall(function()
-        local json = HttpService:JSONEncode(self.collectedTokenData)
-        -- writefile(CONFIG.FILES.TOKEN_DATA, json)
-    end)
-    
-    if not success and CONFIG.DEBUG.ENABLED then
-        warn("[TokenHelper] Failed to save token data:", err)
-    end
 end
 
 function TokenHelper:getBestNearbyToken()

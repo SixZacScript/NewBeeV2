@@ -266,7 +266,6 @@ function QuestHelper:onMonsterEvent(data)
         local timeString = os.date("!%Y-%m-%d %H:%M:%S", killTime + (7 * 3600))
         data.thaitime = timeString
         table.insert(self.monsterEvent,data)
-        writefile('monsterEvent.json',HttpService:JSONEncode(self.monsterEvent))
     end
 
 end

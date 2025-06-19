@@ -75,11 +75,16 @@ function TaskManager:doHunting()
     local fieldPart = shared.helper.Field:getField(fieldName)
     self:returnToField({Position = fieldPart.Position, Player = self.bot.plr})
     local monsterList = shared.helper.Monster:getMonsterByType(monsterType)
-
+    local startTime = tick()
     repeat
         monsterList = shared.helper.Monster:getMonsterByType(monsterType)
         task.wait()
-    until #monsterList > 0
+    until #monsterList > 0 or tick() - startTime >= 60
+
+    if #monsterList == 0 then 
+        self.bot:setState(self.bot.States.IDLE)
+        return true
+    end
 
     for index, value in pairs(monsterList) do
         local targetMonster = monsterList[index]
@@ -96,32 +101,7 @@ function TaskManager:doHunting()
     task.wait(.5)
 
     local tokens = self.bot.tokenHelper:getTokensByField(fieldPart)
-    for _, token in ipairs(tokens) do
-        if token.instance and self.bot.plr:isValid() then
-            local humanoid = self.bot.plr.humanoid
-            if humanoid then
-                local conn
-                local reached = false
-                conn = humanoid.MoveToFinished:Connect(function()
-                    reached = true
-                end)
-
-                humanoid:MoveTo(token.position)
-
-                local startTime = tick()
-                while not reached and tick() - startTime < 5 do
-                    if not self.bot.plr:isValid() then
-                        if conn then conn:Disconnect() end
-                        return false
-                    end
-                    task.wait(0.1)
-                end
-
-                if conn then conn:Disconnect() end
-            end
-            task.wait()
-        end
-    end
+    self:collectTokenByList(tokens)
 
     self.bot.questHelper:getAvailableTask()
     self.bot:setState(self.bot.States.IDLE)
@@ -452,7 +432,7 @@ function TaskManager:convertPollen()
             end
         end
 
-        if bot:isRunning() then task.wait(4) end
+        if bot:isRunning() then task.wait(3) end
         player:disableWalking(false)
         player:equipMask()
         coroutine.resume(thread, true)

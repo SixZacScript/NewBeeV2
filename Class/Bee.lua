@@ -235,17 +235,7 @@ function BeeHelper:getAllBees()
             end
         end
     end
-    
-    -- Optional: Save to file with error handling
-    local success, jsonData = pcall(HttpService.JSONEncode, HttpService, allBees)
-    if success then
-        local writeSuccess = pcall(writefile, 'optimized_bee_data.json', jsonData)
-        if not writeSuccess then
-            warn("BeeHelper: Failed to write bee data to file")
-        end
-    else
-        warn("BeeHelper: Failed to encode bee data to JSON")
-    end
+
     
     self.allBees = allBees
     return allBees
