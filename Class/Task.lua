@@ -431,8 +431,8 @@ function TaskManager:convertPollen()
                 balloonBlessing = balloonBlessing or 0
             end
         end
-
-        if bot:isRunning() then task.wait(3) end
+        if bot:isRunning() then task.wait(4) end
+        Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
         player:disableWalking(false)
         player:equipMask()
         coroutine.resume(thread, true)

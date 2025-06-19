@@ -230,13 +230,18 @@ function TokenHelper:_loadConfig()
     end
 end
 
-function TokenHelper:getTokensByField(field)
-    if not field  then return {} end
+function TokenHelper:getTokensByField(field, option)
+    if not field then return {} end
 
     local tokensInField = {}
+    local ignoreSkill = option and option.igoreSkill
+    local ignoreBubble = option and option.ignoreBubble
+
     for _, token in pairs(self.activeTokens) do
         if token.tokenField == field then
-            table.insert(tokensInField, token)
+            if ignoreSkill and token.isSkill then continue end
+            if ignoreBubble and token.name == "Bubble" then continue end
+            tokensInField[#tokensInField + 1] = token
         end
     end
 

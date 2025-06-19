@@ -559,7 +559,7 @@ function Bot:handleKillMonsterTask()
         end
         
         if self.isStart then task.wait(1) end
-        local tokens = self.tokenHelper:getTokensByField(fieldPart)
+        local tokens = self.tokenHelper:getTokensByField(fieldPart, {igoreSkill = true, ignoreBubble = true})
         if #tokens > 0 then
             self.taskManager:collectTokenByList(tokens)
         end

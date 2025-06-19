@@ -141,7 +141,7 @@ function MonsterHelper:setupListener()
                 shared.Fluent.monsterStatusInfo:SetDesc(table.concat(lines, "\n"))
             end
 
-            task.wait(1)
+            task.wait(10)
         end
     end)
 
