@@ -431,7 +431,7 @@ function TaskManager:convertPollen()
 
             task.wait(1)
             if shared.main.autoConvertBalloon then
-                balloonValue, balloonBlessing = shared.helper.Hive:getBalloon()
+                balloonValue, balloonBlessing = shared.helper.Hive:getBalloonData()
                 balloonValue = balloonValue or 0
                 balloonBlessing = balloonBlessing or 0
             end
