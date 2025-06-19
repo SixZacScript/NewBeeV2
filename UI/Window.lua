@@ -356,7 +356,7 @@ function FluentUI:_initPlanterTab()
             Values = shared.helper.Field:getAllFieldDisplayNames(),
             Multi = false,
             Default = 1,
-            Callback = function(field)
+            Callback = function(field)  
                 Slots[i].Field = field
             end
         })
@@ -367,7 +367,7 @@ function FluentUI:_initPlanterTab()
             Default = Slots[i].HarvestAt or 100,
             Min = 1,
             Max = 100,
-            Rounding = 1,
+            Rounding = 0,
             Callback = function(value)
                 Slots[i].HarvestAt = tonumber(value)
             end
@@ -575,6 +575,27 @@ function FluentUI:_initCombatTab()
             "Scorpion: 🔴 Cooldown",
         }, "\n")
     })
+
+    local autoViciousbeeSection = combatTab:AddSection("Auto Vicious bee")
+    self.autoViciousbee = autoViciousbeeSection:AddToggle("autoViciousbee", {
+        Title = "Auto Hunt Vicious bee",
+        Description = "⚔️ Automatically hunts vicious bee on the map.",
+        Default = false,
+        Callback = function(val)
+            shared.main.Monster.vicious.autoViciousbee = val
+        end
+    })
+    self.viciousMaxLevel = autoViciousbeeSection:AddSlider("viciousMaxLevel", {
+        Title = "Max Level",
+        Default = 1,
+        Min = 1,
+        Max = 12,
+        Rounding = 0,
+        Callback = function(Value)
+            shared.main.Monster.vicious.maxLevel = Value
+        end
+    })
+
 end
 
 

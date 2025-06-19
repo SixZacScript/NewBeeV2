@@ -245,6 +245,10 @@ function TokenHelper:getTokensByField(field, option)
         end
     end
 
+    table.sort(tokensInField, function(a, b)
+        return a.spawnTime < b.spawnTime
+    end)
+
     return tokensInField
 end
 

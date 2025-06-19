@@ -32,7 +32,7 @@ local RunService = game:GetService("RunService")
 function PlayerHelper.new()
     local self = setmetatable({}, PlayerHelper)
     self.player = Players.LocalPlayer
-    self.player.CameraMaxZoomDistance = 150
+    self.player.CameraMaxZoomDistance = 300
     
 
     self.CoreStats = self.player:WaitForChild("CoreStats")
@@ -163,7 +163,9 @@ end
 function PlayerHelper:getDistanceByPos(pos)
     return (self.rootPart.Position - pos).Magnitude or math.huge
 end
-
+function PlayerHelper:getPosition()
+    return self.rootPart.Position
+end
 function PlayerHelper:tweenTo(targetPosition, duration, callback)
     if not self:isValid() then return false end
 
@@ -521,6 +523,24 @@ function PlayerHelper:setupPlanterListener()
 end
 
 
+
+function PlayerHelper:getEstimatedConvertTime()
+    if not self.CoreStats then return nil end
+
+    local pollen = self.CoreStats:FindFirstChild("Pollen") and self.CoreStats.Pollen.Value or 0
+    local stats = self.plrStats.ModifierCaches
+    if not stats then return nil end
+
+    local baseRate = (stats.BaseConversionRate and stats.BaseConversionRate._) or 50
+    local convAtHive = (stats.ConversionAtHive and stats.ConversionAtHive._) or 1
+    local honeyAtHive = (stats.HoneyAtHive and stats.HoneyAtHive._) or 1
+
+    local convertRate = baseRate * convAtHive * honeyAtHive
+    if convertRate <= 0 then return math.huge end
+
+    local seconds = pollen / convertRate
+    return math.floor(seconds + 0.5) -- round to nearest second
+end
 
 
 function PlayerHelper:destroy()

@@ -528,43 +528,52 @@ end
 
 function Bot:handleKillMonsterTask()
     self:setState(self.States.KILL_MONSTER)
-    local MonsterList = shared.helper.Monster:getAvailableMonster()
-    local monsterInField = {}
+    -- local MonsterList = shared.helper.Monster:getAvailableMonster()
+    -- local monsterInField = {}
 
-    for _, monster in pairs(MonsterList) do
-        if not monsterInField[monster.field] then monsterInField[monster.field] = {} end
-        table.insert(monsterInField[monster.field], monster)
-    end
+    -- for _, monster in pairs(MonsterList) do
+    --     if not monsterInField[monster.field] then monsterInField[monster.field] = {} end
+    --     table.insert(monsterInField[monster.field], monster)
+    -- end
 
-    for fieldName, monsters  in pairs(monsterInField) do
-        local fieldPart = shared.helper.Field:getField(fieldName)
-        self.taskManager:returnToField({Position = fieldPart.Position, Player = self.plr})
-        task.wait(0.5)
-        for index, monster in pairs(monsters) do
-            local startTime = tick()
-            repeat
-                local targetModel = shared.helper.Monster:getMonsterModel(monster.monsterType)
-                if targetModel  and (monster and fieldPart.Name == "Pine Tree Forest") then
-                    local distance = shared.helper.Monster:getDistanceToMonster(targetModel)
-                    if distance and distance > 30 then
-                        local root = self.plr.rootPart
-                        local direction = (targetModel.PrimaryPart.Position - root.Position).Unit
-                        local nextPos = root.Position + direction * 10
-                        self.plr.humanoid:MoveTo(nextPos)
-                    end
-                end
-                self.plr.humanoid.Jump = true
-                task.wait(1.5)
-            until monster.timerLabel.Visible or not self.isStart
-        end
+    -- for fieldName, monsters  in pairs(monsterInField) do
+    --     local fieldPart = shared.helper.Field:getField(fieldName)
+    --     self.taskManager:returnToField({Position = fieldPart.Position, Player = self.plr})
+    --     task.wait(0.5)
+    --     for index, monster in pairs(monsters) do
+    --         local startTime = tick()
+    --         repeat
+    --             local targetModel = shared.helper.Monster:getMonsterModel(monster.monsterType)
+    --             if targetModel  and (monster and fieldPart.Name == "Pine Tree Forest") then
+    --                 local distance = shared.helper.Monster:getDistanceToMonster(targetModel)
+    --                 if distance and distance > 30 then
+    --                     local root = self.plr.rootPart
+    --                     local direction = (targetModel.PrimaryPart.Position - root.Position).Unit
+    --                     local nextPos = root.Position + direction * 10
+    --                     self.plr.humanoid:MoveTo(nextPos)
+    --                 end
+    --             end
+    --             self.plr.humanoid.Jump = true
+    --             task.wait(1.5)
+    --         until monster.timerLabel.Visible or not self.isStart or (tick() - startTime) > 60 -- 1 min
+    --     end
         
-        if self.isStart then task.wait(1) end
-        local tokens = self.tokenHelper:getTokensByField(fieldPart, {igoreSkill = true, ignoreBubble = true})
-        if #tokens > 0 then
-            self.taskManager:collectTokenByList(tokens)
-        end
+    --     if self.isStart then task.wait(.5) end
 
-    end
+    --     local startTime = tick()
+    --     local timeout = 30 
+    --     local tokens = self.tokenHelper:getTokensByField(fieldPart, {igoreSkill = true, ignoreBubble = true})
+    --     repeat
+    --         tokens = self.tokenHelper:getTokensByField(fieldPart, {igoreSkill = true, ignoreBubble = true})
+    --         if #tokens > 0 then
+
+    --             self.taskManager:collectTokenByList(tokens)
+    --         end
+    --         task.wait()
+    --     until #tokens == 0 or (tick() - startTime) > timeout
+                
+
+    -- end
 
     self:setState(self.States.IDLE)
     return true
@@ -779,9 +788,9 @@ function Bot:shouldDoQuest()
 end
 
 function Bot:shouldKillMonster()
-    if not shared.main.Monster.autoHunt then return false end
-    local monsters = shared.helper.Monster:getAvailableMonster()
-    if monsters then return true end
+    -- if not shared.main.Monster.autoHunt then return false end
+    -- local monsters = shared.helper.Monster:getAvailableMonster()
+    -- if monsters then return true end
     
     return false
 end

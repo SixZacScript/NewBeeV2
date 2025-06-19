@@ -18,11 +18,11 @@ local BeeModule = shared.ModuleLoader:load(_G.URL.."/Class/Bee.lua")
 local GUIHelper = GUIHelperModule.new()
 GUIHelper:loading("Loading data...")
 
-GUIHelper:createQuestInfo({
-    title = "📜 No active quest",
-    content  = "No active quest available",
-    progress = 0
-})
+-- GUIHelper:createQuestInfo({
+--     title = "📜 No active quest",
+--     content  = "No active quest available",
+--     progress = 0
+-- })
 shared.onDestroy = function()
     shared.ModuleLoader:destroyAll()
 end
@@ -47,6 +47,10 @@ shared.main = {
     statusText = GUIHelper:createStatus(),
     Monster = {
         autoHunt = false,
+        vicious = {
+            autoViciousbee = false,
+            maxLevel = 1
+        },
         monsters = {},
     },
     Planter = {

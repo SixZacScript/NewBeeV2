@@ -4,7 +4,7 @@ local Services = {
     RunService = game:GetService("RunService"),
     ReplicatedStorage = game:GetService("ReplicatedStorage")
 }
-local HttpService = game:GetService("HttpService")
+
 local placeSprinklerEvent = game:GetService("ReplicatedStorage").Events.PlayerActivesCommand
 local TaskManager = {}
 TaskManager.__index = TaskManager
@@ -178,7 +178,14 @@ function TaskManager:harvestPlanter()
     self.bot:setState(self.bot.States.IDLE)
     return true
 end
+
 function TaskManager:collectTokenByList(tokens)
+    local botPos = self.bot.plr:getPosition()
+
+    table.sort(tokens, function(a, b)
+        return (a.position - botPos).Magnitude < (b.position - botPos).Magnitude
+    end)
+
     for _, token in ipairs(tokens) do
         if token.instance and self.bot.plr:isValid() then
             local humanoid = self.bot.plr.humanoid
@@ -202,11 +209,18 @@ function TaskManager:collectTokenByList(tokens)
 
                 if conn then conn:Disconnect() end
             end
+
             task.wait()
+
+            botPos = self.bot.plr:getPosition()
+            table.sort(tokens, function(a, b)
+                return (a.position - botPos).Magnitude < (b.position - botPos).Magnitude
+            end)
         end
     end
-    
 end
+
+
 function TaskManager:isSprinklerPlaced(field)
     return self.placedField == field
 end
@@ -431,8 +445,11 @@ function TaskManager:convertPollen()
                 balloonBlessing = balloonBlessing or 0
             end
         end
+        if shared.main.autoConvertBalloon then
+            Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
+        end
         if bot:isRunning() then task.wait(4) end
-        Services.ReplicatedStorage.Events.PlayerHiveCommand:FireServer("ToggleHoneyMaking")
+
         player:disableWalking(false)
         player:equipMask()
         coroutine.resume(thread, true)
