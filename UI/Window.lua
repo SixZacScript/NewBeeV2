@@ -1,4 +1,4 @@
--- Constants and Configuration
+local HttpService = game:GetService('HttpService')
 local SERVICES = {
     HttpService = game:GetService('HttpService'),
     Workspace = game:GetService('Workspace'),
@@ -105,6 +105,7 @@ function FluentUI:_createTabs()
         {name = "Quest", title = "Quest", icon = "book"},
         {name = "Planter", title = "Planter", icon = "sprout"},
         {name = "Hive", title = "Hive", icon = "circle"},
+        {name = "Combat", title = "Combat", icon = "sword"},
         {name = "Settings", title = "Settings", icon = "settings"}
     }
     
@@ -122,6 +123,7 @@ function FluentUI:_initializeAllTabs()
     self:_initPlanterTab()
     self:_initQuestTab()
     self:_initHiveTab()
+    self:_initCombatTab()
     self:_initSettingsTab()
 end
 
@@ -532,6 +534,45 @@ function FluentUI:_initHiveTab()
     local beeToolsSection = hiveTab:AddSection("Bee Tools")
     self:_createBeeToolsControls(beeToolsSection)
 end
+
+function FluentUI:_initCombatTab()
+    local combatTab = self.Tabs.Combat
+
+    self.autoHuntMonster = combatTab:AddToggle("autoHuntMonster", {
+        Title = "Auto Hunt Monsters",
+        Description = "⚔️ Automatically hunts spawned monsters on the map.",
+        Default = false
+    })
+
+    local monsterToHuntSection = combatTab:AddSection("Monsters to hunt")
+    self.monsterToHunt = monsterToHuntSection:AddDropdown("monsterToHunt", {
+        Title = "Select Monsters",
+        Description = "📋 Choose which monsters to hunt automatically.",
+        Values = { "Ladybug", "Rhino Beetle","Spider", "Mantis", "Werewolf", "Scorpion"},
+        Multi = true,
+        Default = {},
+        Callback = function(val)
+            local monsters = {}
+            for monsterName, value in pairs(val) do
+                table.insert(monsters, monsterName)
+            end
+            shared.main.Monster.monsters = monsters
+            print(HttpService:JSONEncode(monsters))
+        end
+    })
+    local monsterStatusSection = combatTab:AddSection("Monsters Status")
+    self.monsterStatusInfo = monsterStatusSection:AddParagraph({
+        Title = "Monster Status",
+        Content = table.concat({
+            "Spider: 🔴 Cooldown", 
+            "Ladybug: 🔴 Cooldown", 
+            "Rhino Beetle: 🔴 Cooldown", 
+            "Mantis: 🔴 Cooldown", 
+            "Werewolf: 🔴 Cooldown"
+        }, "\n")
+    })
+end
+
 
 function FluentUI:_createAutoJellyControls(section)
     -- Bee Selection

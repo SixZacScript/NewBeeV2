@@ -205,21 +205,14 @@ function HiveHelper:getBalloon()
             local barLabel = gui:FindFirstChild("Bar") and gui.Bar:FindFirstChild("TextLabel")
             if barLabel then
                 local rawText = barLabel.Text
-                print("🔎 Raw Balloon Label Text:", rawText)
-                
                 local cleanedText = rawText:gsub("[^%d]", "")
-                print("🔧 Cleaned Text:", cleanedText)
                 
                 if cleanedText ~= "" then
                     balloonValue = tonumber(cleanedText) or 0
-                    print("💰 Balloon Value:", balloonValue)
-                else
-                    print("⚠️ No digits found in text")
                 end
             end
 
-            local blessingLabel = gui:FindFirstChild("BlessingBar")
-                and gui.BlessingBar:FindFirstChild("TextLabel")
+            local blessingLabel = gui:FindFirstChild("BlessingBar") and gui.BlessingBar:FindFirstChild("TextLabel")
             if blessingLabel then
                 blessingCount = tonumber(blessingLabel.Text:match("x(%d+)")) or 0
             end

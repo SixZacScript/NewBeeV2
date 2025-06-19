@@ -45,6 +45,10 @@ shared.main = {
     convertAtBlessing = false,
     
     statusText = GUIHelper:createStatus(),
+    Monster = {
+        autoHunt = false,
+        monsters = {},
+    },
     Planter = {
         autoPlanterEnabled = false,
         Slots = {

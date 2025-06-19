@@ -37,6 +37,7 @@ function MonsterHelper.new()
     local self = setmetatable({}, MonsterHelper)
     self.Monsters = {}
     self.connections = {} 
+    self.availableMonsters = {}
     self.spawnerKey = spawnerKey
     self:setupListener()
     return self
@@ -65,6 +66,19 @@ function MonsterHelper:checkMonsterForTarget(monster)
     end
 end
 
+function MonsterHelper:getThaiTimeString(unixTimestamp)
+    local utcTime = os.date("!*t", unixTimestamp)
+    utcTime.hour = utcTime.hour + 7
+
+    -- Adjust for overflow
+    if utcTime.hour >= 24 then
+        utcTime.hour = utcTime.hour - 24
+        utcTime.day = utcTime.day + 1
+    end
+
+    return string.format("%04d-%02d-%02d %02d:%02d:%02d", utcTime.year, utcTime.month, utcTime.day, utcTime.hour, utcTime.min, utcTime.sec)
+end
+
 function MonsterHelper:setupListener()
     self.connections.folderChildAdded = MonstersFolder.ChildAdded:Connect(function(monster)
         -- Simply check all descendants for Target
@@ -81,6 +95,36 @@ function MonsterHelper:setupListener()
             table.remove(self.Monsters, index) 
         end
     end)
+
+    local monsterList = {"Ladybug", "Rhino Beetle", "Spider", "Mantis", "Werewolf"}
+    task.spawn(function()
+        while true do
+            local monsters = self:getMonsterTime()
+            local lines = {}
+
+            for _, monsterName in ipairs(monsterList) do
+                local data = monsters[monsterName]
+                if data then
+                    if data.isSpawned then
+                        self.availableMonsters[monsterName] = data
+                        table.insert(lines, string.format("%s | 🟢", monsterName))
+                    else
+                        table.insert(lines, string.format("%s | %s | 🔴", monsterName, data.time))
+                    end
+                else
+                    table.insert(lines, string.format("%s | N/A | 🔴", monsterName))
+                end
+            end
+
+            if shared.Fluent and shared.Fluent.monsterStatusInfo then
+                shared.Fluent.monsterStatusInfo:SetDesc(table.concat(lines, "\n"))
+            end
+                
+            task.wait(1)
+        end
+    end)
+
+
 end
 
 function MonsterHelper:playerValid()
@@ -90,12 +134,9 @@ end
 function MonsterHelper:getCloseMonsterCount(targetDistance)
     local count = 0
     local char = shared.helper.Player.character
-    local hum = shared.helper.Player.humanoid
     local root = char and char:FindFirstChild("HumanoidRootPart")
 
     if not self:playerValid() then return 0 end
-
-
     for _, monster in ipairs(self.Monsters) do
         local mRoot = monster.PrimaryPart
         if mRoot then
@@ -109,6 +150,47 @@ function MonsterHelper:getCloseMonsterCount(targetDistance)
     end
     return count
 end
+
+
+function MonsterHelper:getMonsterTime()
+    local monsters = {}
+
+    for _, spawner in ipairs(MonsterSpawnersFolder:GetChildren()) do
+        local monsterTypeObj = spawner:FindFirstChild("MonsterType")
+        local attachment = spawner:FindFirstChildWhichIsA("Attachment")
+        if monsterTypeObj and attachment then
+            local monsterType = monsterTypeObj.Value
+            local timerLabel = attachment:FindFirstChild("TimerGui") and attachment.TimerGui:FindFirstChild("TimerLabel")
+
+            if timerLabel then
+                local isSpawned = not timerLabel.Visible
+                local current = monsters[monsterType]
+
+                if not current then
+                    monsters[monsterType] = {
+                        isSpawned = false,
+                        time = timerLabel.Text,
+                        field = spawnerKey[spawner.Name] -- เพิ่มฟิลด์นี้
+                    }
+                end
+
+                if isSpawned then
+                    monsters[monsterType].isSpawned = true
+                    monsters[monsterType].time = "00:00"
+                    monsters[monsterType].field = spawnerKey[spawner.Name] -- อัปเดตฟิลด์ถ้ามีการเกิด
+                else
+                    if not monsters[monsterType].isSpawned then
+                        monsters[monsterType].time = timerLabel.Text
+                        monsters[monsterType].field = spawnerKey[spawner.Name]
+                    end
+                end
+            end
+        end
+    end
+
+    return monsters
+end
+
 
 
 

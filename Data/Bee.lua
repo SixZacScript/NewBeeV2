@@ -69,8 +69,10 @@ function BeeModule.getAllBees(exclude)
             table.insert(filtered, bee)
         end
     end
+    table.sort(filtered) -- Sort A-Z
     return filtered
 end
+
 
 function BeeModule:getBeeRarity(beeName)
     for rarity, list in pairs(rarityMap) do

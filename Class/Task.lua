@@ -452,7 +452,7 @@ function TaskManager:convertPollen()
             end
         end
 
-        if bot:isRunning() then task.wait(5) end
+        if bot:isRunning() then task.wait(4) end
         player:disableWalking(false)
         player:equipMask()
         coroutine.resume(thread, true)
