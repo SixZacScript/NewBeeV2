@@ -45,6 +45,9 @@ shared.main = {
     convertAtBlessing = 1,
     
     statusText = GUIHelper:createStatus(),
+    Farm = {
+        fieldBoost = {}
+    },
     Monster = {
         autoHunt = false,
         vicious = {

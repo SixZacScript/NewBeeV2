@@ -53,8 +53,9 @@ local function encodeSelection(data)
 end
 
 local function setPartVisibility(part, isHidden)
+    part.CanQuery = false
     part.CanCollide = not isHidden
-    part.Transparency = isHidden and 0.75 or 0
+    part.Transparency = isHidden and 1 or 0
     part.CastShadow = not isHidden
 end
 
@@ -183,7 +184,7 @@ function FluentUI:_initMainTab()
 end
 
 function FluentUI:_createMainToggles(mainTab)
-    local mainSection = mainTab:AddSection("Farm Section")
+    local mainSection = mainTab:AddSection("Farm section")
     self.autoFarmToggle = mainSection:AddToggle("autoFarm", {
         Title = "Auto Farm",
         Default = false
@@ -218,7 +219,7 @@ function FluentUI:_createMainToggles(mainTab)
         end
     })
     
-    local balloonSection = mainTab:AddSection("Balloon Section")
+    local balloonSection = mainTab:AddSection("Balloon section")
     self.autoConvertBalloon = balloonSection:AddToggle("autoConvertBalloon", {
         Title = "Auto Convert Hive Balloon",
         Description = "🎈 Automatically converts the hive balloon when it's available.",
@@ -239,6 +240,23 @@ function FluentUI:_createMainToggles(mainTab)
             shared.main.convertAtBlessing = Value
         end
     })
+
+    local fieldboostSection = mainTab:AddSection("Field Boosts Section")
+    self.fieldboosts = fieldboostSection:AddDropdown("fieldboosts", {
+        Title = "🚀 Select a Field Boost",
+        Values = {"Red Field Booster" , "Blue Field Booster", "Field Booster"},
+        Description = "Automatically uses the selected field boost.",
+        Multi = true,
+        Default = {},
+         Callback = function(Value)
+            local toys = {}
+            for toyName, value in pairs(Value) do
+                table.insert(toys, toyName)
+            end
+            shared.main.Farm.fieldBoost = toys
+        end
+    })
+
 
 
     
@@ -883,10 +901,8 @@ function FluentUI:_toggleDecorations(isHidden)
 end
 
 function FluentUI:_shouldSkipPart(part)
-    return part.Name == "Stump" or 
-           (part.Parent and part.Parent.Name == "Stump") or
-           part.Name == "StarAmuletBuilding" or 
-           (part.Parent and part.Parent.Name == "StarAmuletBuilding")
+    
+    return part.Name == "Stump" or (part.Parent and part.Parent.Name == "Stump") or part.Name == "StarAmuletBuilding" or (part.Parent and part.Parent.Name == "StarAmuletBuilding") or part.Name == "TrapTunnel" or (part.Parent and part.Parent.Name == "TrapTunnel")
 end
 
 -- Public Methods

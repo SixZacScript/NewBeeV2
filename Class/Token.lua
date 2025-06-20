@@ -35,8 +35,6 @@ local CONFIG = {
         HIGH_PRIORITY_THRESHOLD = 80,
         MAX_RETRY_ATTEMPTS = 3,
         CLEANUP_DELAY = 1,
-        SELECTION_BOX_THICKNESS = 0.05,
-        SELECTION_BOX_TRANSPARENCY = 1,
         SIMPART_TRANSPARENCY = 1,
         AUTO_CLEANUP_INTERVAL = 30, -- seconds
     },
@@ -106,28 +104,13 @@ function Token.new(id, name, instance, priority, isSkill, position)
     }, Token)
 
     if instance then
-        self:_setupSelectionBox()
         self:_setupTouchHandler()
     end
 
     return self
 end
 
-function Token:_setupSelectionBox()
-    if not self.instance then return end
-    
-    local box = Instance.new("SelectionBox")
-    box.Name = "TokenSelectionBox"
-    box.Adornee = self.instance
-    box.LineThickness = CONFIG.TOKEN.SELECTION_BOX_THICKNESS
-    box.SurfaceColor3 = CONFIG.COLORS.GREEN
-    box.Color3 = CONFIG.COLORS.GREEN
-    box.SurfaceTransparency = CONFIG.TOKEN.SELECTION_BOX_TRANSPARENCY
-    box.Transparency = CONFIG.TOKEN.SELECTION_BOX_TRANSPARENCY
-    box.Parent = self.instance
-    
-    self.selectionBox = box
-end
+
 
 function Token:_setupTouchHandler()
     if not self.instance then return end

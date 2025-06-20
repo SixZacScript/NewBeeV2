@@ -405,6 +405,10 @@ function TaskManager:doFarming()
     return true
 end
 
+function TaskManager:useFieldBoost(toyName)
+    return game:GetService("ReplicatedStorage").Events.ToyEvent:FireServer(toyName)
+end
+
 function TaskManager:convertPollen()
     if not self.bot.plr:isCapacityFull() then 
         return false 

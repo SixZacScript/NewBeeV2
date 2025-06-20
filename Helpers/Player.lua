@@ -242,6 +242,8 @@ end
 
 function PlayerHelper:getRoot() return self.rootPart end
 
+
+
 function PlayerHelper:isPlayerInField(field)
     if not field or not field:IsA("BasePart") or not self.rootPart then
         return false
@@ -249,10 +251,14 @@ function PlayerHelper:isPlayerInField(field)
 
     local fieldCenter = Vector3.new(field.Position.X, 0, field.Position.Z)
     local playerPos = Vector3.new(self.rootPart.Position.X, 0, self.rootPart.Position.Z)
-    local distance = (fieldCenter - playerPos).Magnitude
 
-    local fieldRadius = math.max(field.Size.X, field.Size.Z) / 2 + 5 
-    return distance <= fieldRadius
+    local halfSizeX = field.Size.X / 2 + 5 
+    local halfSizeZ = field.Size.Z / 2 + 5
+
+    local dx = math.abs(playerPos.X - fieldCenter.X)
+    local dz = math.abs(playerPos.Z - fieldCenter.Z)
+
+    return dx <= halfSizeX and dz <= halfSizeZ
 end
 
 

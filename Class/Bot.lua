@@ -201,25 +201,47 @@ function Bot:initializeTaskHandlers()
     }
 end
 
--- Interval Task Management
+
 function Bot:startIntervalTask()
-    if self.connections.interval then 
-        self.connections.interval:Disconnect() 
-    end
-    
-    self.connections.interval = RunService.Heartbeat:Connect(function()
-        local now = tick()
-        
-        -- Update session time every second
-        if now - self.lastTick >= Bot.Config.SESSION_UPDATE_INTERVAL then
-            self.lastTick = now
-            self:updateSessionTime()
-        end
-        
-        -- Enable clock usage every hour
-        if now - self.lastHourTick >= Bot.Config.CLOCK_COOLDOWN + 15 then
-            self.lastHourTick = now
-            self.canUseClock = true
+    local COOLDOWN = 2700
+    task.spawn(function()
+        while true do
+            local now = tick()
+            local currentTime = os.time()
+            
+            -- Update session time every second
+            if now - self.lastTick >= Bot.Config.SESSION_UPDATE_INTERVAL then
+                self.lastTick = now
+                self:updateSessionTime()
+            end
+            
+            -- Enable clock usage every hour
+            if now - self.lastHourTick >= Bot.Config.CLOCK_COOLDOWN + 10 then
+                self.lastHourTick = now
+                self.canUseClock = true
+            end
+            
+            -- Check toys
+            local selectedToys = shared.main.Farm.fieldBoost
+            if selectedToys then
+                local ToyTimes = self.plr.plrStats.ToyTimes
+                local needsRefresh = false
+                
+                for _, toyName in pairs(selectedToys) do
+                    local usedTime = ToyTimes[toyName]
+                    
+                    if not usedTime or (currentTime - usedTime) >= COOLDOWN then
+                        self.taskManager:useFieldBoost(toyName)
+                        needsRefresh = true
+                    end
+                end
+                
+                if needsRefresh then
+                    ToyTimes = self.plr:getPlayerStats().ToyTimes
+                end
+            end
+            
+            task.wait(1) 
         end
     end)
 end
@@ -251,10 +273,8 @@ function Bot:setupRealtime()
         end
         lastUpdate = now
         
-        -- Update monster count
+
         self.monsterCount = shared.helper.Monster:getCloseMonsterCount(Bot.Config.MONSTER_CHECK_RADIUS)
-        
-        -- Update field if changed and not busy
         local currentField = shared.helper.Field:getField()
         if self.currentField ~= currentField and not self:isBusy() then
             self.currentField = currentField
@@ -264,19 +284,11 @@ function Bot:setupRealtime()
             self:setState(self.States.IDLE)
         end
 
-        -- Update token position only if player moved significantly
+
         if self.plr and self.plr.rootPart then
             local pos = self.plr.rootPart.Position
-            
-            -- ใช้ distance check ที่เรียบง่าย
-            local shouldUpdateToken = not self.lastTokenUpdatePos or 
-                                    math.abs(pos.X - self.lastTokenUpdatePos.X) > Bot.Config.TOKEN_UPDATE_DISTANCE or
-                                    math.abs(pos.Z - self.lastTokenUpdatePos.Z) > Bot.Config.TOKEN_UPDATE_DISTANCE
-            
-            if shouldUpdateToken then
-                self.token = self.tokenHelper:getBestNearbyToken(pos)
-                self.lastTokenUpdatePos = pos
-            end
+            self.token = self.tokenHelper:getBestNearbyToken(pos)
+            self.lastTokenUpdatePos = pos
         end
     end)
 end
