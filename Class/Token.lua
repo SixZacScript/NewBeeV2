@@ -497,7 +497,64 @@ function TokenHelper:_updateCollectedStats(token)
     self.collectedTokenData[tokenID] = stats
     
 end
-
+function TokenHelper:getBestTokenByField(targetField, option)
+    if not self.player:isValid() or not self.player.rootPart or not targetField then 
+        return nil 
+    end
+    option = option or {}
+    local ignoreSkill = option.ignoreSkill or false
+    local playerRoot = self.player.rootPart
+    local bestToken = nil
+    local bestValue = math.huge
+    local availableTokens = {}
+    local targetTokenId = 1629547638 -- The token ID you want to prioritize/skip
+    local targetToken = nil
+    
+    -- First pass: collect all collectable tokens in the specified field
+    for _, tokenData in pairs(self.activeTokens) do
+        if tokenData and tokenData.instance and not tokenData.touched and tokenData.tokenField == targetField then
+            if tokenData.isSkill and ignoreSkill then continue end
+            if shared.main.ignoreHoneyToken and tokenData.id == 1472135114 then
+               continue
+            end
+            table.insert(availableTokens, tokenData)
+            if tokenData.id == targetTokenId then
+                targetToken = tokenData
+            end
+        end
+    end
+    
+    -- If no tokens in this field, return nil
+    if #availableTokens == 0 then
+        return nil
+    end
+    
+    -- If we only have the target token and no others, skip it
+    if #availableTokens == 1 and targetToken then
+        return nil
+    end
+    
+    -- If we have the target token AND other tokens, prioritize the target token
+    if targetToken and #availableTokens > 1 then
+        return targetToken
+    end
+    
+    -- Otherwise, find the best token from available tokens (excluding target token)
+    for _, tokenData in ipairs(availableTokens) do
+        if tokenData.id ~= targetTokenId then -- Skip target token in normal selection
+            local value = self.useSimpleDistanceLogic 
+                and (tokenData.position - playerRoot.Position).Magnitude
+                or self:calculateSmartTokenScore(tokenData, playerRoot)
+                
+            if value < bestValue then
+                bestValue = value
+                bestToken = tokenData
+            end
+        end
+    end
+    
+    return bestToken
+end
 function TokenHelper:getBestNearbyToken()
     if not self.player:isValid() or not self.player.rootPart then return nil end
     

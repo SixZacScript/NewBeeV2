@@ -101,13 +101,14 @@ end
 
 function FluentUI:_createTabs()
     local tabConfigs = {
-        {name = "Main", title = "Main", icon = "home"},
+        {name = "Main", title = "Main", icon = "grid"},
         {name = "Player", title = "Player", icon = "user"},
-        {name = "Quest", title = "Quest", icon = "book"},
         {name = "Planter", title = "Planter", icon = "sprout"},
-        {name = "Hive", title = "Hive", icon = "circle"},
-        -- {name = "Combat", title = "Combat", icon = "sword"},
+        {name = "Hive", title = "Hive", icon = "home"},
+        {name = "Misc", title = "Miscellaneous", icon = "star"},
         {name = "Settings", title = "Settings", icon = "settings"}
+        -- {name = "Quest", title = "Quest", icon = "book"},
+        -- {name = "Combat", title = "Combat", icon = "sword"},
     }
     
     for _, config in ipairs(tabConfigs) do
@@ -122,10 +123,11 @@ function FluentUI:_initializeAllTabs()
     self:_initMainTab()
     self:_initPlayerTab()
     self:_initPlanterTab()
-    self:_initQuestTab()
     self:_initHiveTab()
-    -- self:_initCombatTab()
+    self:_initMiscTab()
     self:_initSettingsTab()
+    -- self:_initCombatTab()
+    -- self:_initQuestTab()
 end
 
 function FluentUI:_setupManagers(deps)
@@ -202,7 +204,13 @@ function FluentUI:_createMainToggles(mainTab)
             shared.main.autoSprinkler = val
         end
     })
-
+    self.autoFarmSprout = mainSection:AddToggle("autoFarmSprout", {
+        Title = "Farm Sprout",
+        Default = false,
+        Callback = function(val)
+            shared.main.Farm.autoFarmSprout = val
+        end
+    })
     self.autoFarmBubble = mainSection:AddToggle("autoFarmBubble", {
         Title = "Farm Bubble",
         Default = false,
@@ -241,22 +249,7 @@ function FluentUI:_createMainToggles(mainTab)
         end
     })
 
-    local fieldboostSection = mainTab:AddSection("Field Boosts Section")
-    self.fieldboosts = fieldboostSection:AddDropdown("fieldboosts", {
-        Title = "🚀 Select a Field Boost",
-        Values = {"Red Field Booster" , "Blue Field Booster", "Field Booster"},
-        Description = "Automatically uses the selected field boost.",
-        Multi = true,
-        Default = {},
-         Callback = function(Value)
-            local toys = {}
-            for toyName, value in pairs(Value) do
-                table.insert(toys, toyName)
-            end
-            shared.main.Farm.fieldBoost = toys
-        end
-    })
-
+ 
 
 
     
@@ -551,6 +544,43 @@ function FluentUI:_initHiveTab()
     -- Bee Tools Section
     local beeToolsSection = hiveTab:AddSection("Bee Tools")
     self:_createBeeToolsControls(beeToolsSection)
+end
+function FluentUI:_initMiscTab()
+    local MiscTab = self.Tabs.Misc
+    
+    local fieldboostSection = MiscTab:AddSection("Field Boosts Section")
+    self.fieldboosts = fieldboostSection:AddDropdown("fieldboosts", {
+        Title = "🚀 Select a Field Boost",
+        Values = {"Red Field Booster" , "Blue Field Booster", "Field Booster"},
+        Description = "Automatically uses the selected field boost.",
+        Multi = true,
+        Default = {},
+         Callback = function(Value)
+            local toys = {}
+            for toyName, value in pairs(Value) do
+                table.insert(toys, toyName)
+            end
+            shared.main.Farm.fieldBoost = toys
+        end
+    })
+
+    local MemoryMatchSection = MiscTab:AddSection("Memory Match Section")
+    self.memoryMatches = MemoryMatchSection:AddDropdown("memoryMatches", {
+        Title = "🧠 Select Memory Matches",
+        Values = {"Memory Match", "Mega Memory Match", "Night Memory Match", "Extreme Memory Match"},
+        Description = "Automatically play selected Memory Matches.",
+        Multi = true,
+        Default = {},
+        Callback = function(Value)
+            local memoryMatchs = {}
+            for name, _ in pairs(Value) do
+                table.insert(memoryMatchs, name)
+            end
+            shared.main.Misc.memoryMatchs = memoryMatchs
+        end
+    })
+
+
 end
 
 function FluentUI:_initCombatTab()

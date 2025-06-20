@@ -46,7 +46,11 @@ shared.main = {
     
     statusText = GUIHelper:createStatus(),
     Farm = {
+        autoFarmSprout = false,
         fieldBoost = {}
+    },
+    Misc = {
+        memoryMatchs = {}
     },
     Monster = {
         autoHunt = false,

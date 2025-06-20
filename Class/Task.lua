@@ -365,6 +365,122 @@ function TaskManager:placeSprinklersByPosition(field, sprinklerData)
         task.wait(1)
     end
 end
+function TaskManager:getSproutAmount(sprout)
+    local function cleanNumberString(str)
+        local cleaned = str
+            :gsub("[%z\1-\127\194-\244][\128-\191]*", function(c)
+                return c:match("^[%z\1-\127]$") and c or ""
+            end)
+            :gsub(",", "")
+        return tonumber(cleaned)
+    end
+
+    local GuiPos = sprout:FindFirstChild("GuiPos")
+    if not GuiPos then return 0 end
+    local Gui = GuiPos.Gui
+    local Frame = Gui.Frame
+    local TextLabel = Frame.TextLabel
+    return cleanNumberString(TextLabel.Text)
+
+end
+
+function TaskManager:hasSprout()
+    local SproutsFolder = workspace.Sprouts
+    local bestSprout = nil
+    local highestAmount = -math.huge
+
+    for _, Sprout in pairs(SproutsFolder:GetChildren()) do
+        if Sprout and Sprout:FindFirstChild("GrowthStep") then
+            local amount = self:getSproutAmount(Sprout)
+            if amount and amount > highestAmount then
+                highestAmount = amount
+                bestSprout = Sprout
+            end
+        end
+    end
+
+    return bestSprout or false
+end
+function TaskManager:doSprout(sprout, field)
+    local player = self.bot.plr
+    if not sprout or not field then
+        return warn("sprout or field not found: doSprout")
+    end
+
+    -- Early exit if not farming sprouts
+    if not self.bot.isStart or not shared.main.Farm.autoFarmSprout then
+        return false
+    end
+
+    -- Ensure player is in correct field
+    if not player:isPlayerInField(field) then
+        self:returnToField({ Position = field.Position, Player = player })
+    end
+
+    -- Handle sprinkler placement
+    local sprinklerName, sprinklerData = player:getSprinkler()
+    if self:shouldPlaceSprinkler(field, sprinklerName, sprinklerData) then
+        self:placeSprinklersByPosition(field, sprinklerData)
+    end
+
+    -- Cache frequently used values
+    local runService = game:GetService("RunService")
+    local tokenHelper = self.bot.tokenHelper
+    local bot = self.bot
+    
+    -- Main sprout farming loop
+    while true do
+        -- Check exit conditions first
+        if self:getSproutAmount(sprout) <= 0 or not bot.isStart or not shared.main.Farm.autoFarmSprout then
+            break
+        end
+
+        local token = tokenHelper:getBestTokenByField(field)
+        local targetPosition = token and token.position or shared.helper.Field:getRandomFieldPosition(field)
+        
+        bot:moveTo(targetPosition, {
+            timeout = 3,
+            onBreak = self:createTokenBreakHandler(field, token, runService, tokenHelper)
+        })
+
+        if bot:shouldConvert() then return true end
+
+        task.wait()
+    end
+
+    -- Optimized cleanup collection
+    self:performCleanupCollection(field, tokenHelper, bot)
+    
+    print("done sprout")
+    return true
+end
+
+function TaskManager:createTokenBreakHandler(field, currentToken, runService, tokenHelper)
+    return function(triggerBreak)
+        local conn
+        conn = runService.Heartbeat:Connect(function()
+            local newToken = tokenHelper:getBestTokenByField(field)
+            if newToken ~= currentToken then
+                conn:Disconnect()
+                triggerBreak()
+            end
+        end)
+    end
+end
+
+-- Separate cleanup method for better organization
+function TaskManager:performCleanupCollection(field, tokenHelper, bot)
+    local startTime = os.clock()
+    local cleanupTimeout = 20
+    
+    while os.clock() - startTime < cleanupTimeout and bot.isStart and shared.main.Farm.autoFarmSprout do
+        local token = tokenHelper:getBestTokenByField(field, { ignoreSkill = true })
+        if token then
+            bot:moveTo(token.position)
+        end
+        task.wait()
+    end
+end
 
 
 function TaskManager:doFarming()
@@ -379,6 +495,13 @@ function TaskManager:doFarming()
         self.placedCount = 0
     end
 
+    local Sprout = self:hasSprout()
+    if Sprout and shared.main.Farm.autoFarmSprout then
+        local sproutPos = Sprout.Position
+        local field = shared.helper.Field:getFieldByPosition(sproutPos)
+       if field then return self:doSprout(Sprout, field) end
+    end
+
     if not player:isPlayerInField(currentField) then
         self.bot.token = nil
         self:returnToField({ Position = currentField.Position, Player = player })
@@ -391,12 +514,12 @@ function TaskManager:doFarming()
 
     self.bot:moveTo(randomPosition, {
         timeout = 3,
-        onBreak = function(breakFunc)
+        onBreak = function(triggerBrake)
             local tokenCheckConnection
             tokenCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if self.bot.token then
+                if self.bot.token or self.bot:shouldAvoidMonster() then
                     if tokenCheckConnection then tokenCheckConnection:Disconnect() end
-                    breakFunc()
+                    triggerBrake()
                 end
             end)
         end

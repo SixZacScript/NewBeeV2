@@ -22,8 +22,8 @@ function QuestHelper.new()
         totalConvertHoney = 0,
     }
 
-    self:_setupEventHandlers()
-    self:startCollectionRateUpdater()
+    -- self:_setupEventHandlers()
+    -- self:startCollectionRateUpdater()
     return self
 end
 
