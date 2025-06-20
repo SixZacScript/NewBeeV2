@@ -171,7 +171,7 @@ function BeeModule:startAutoJelly()
             end
 
             local remaining = self:doJelly(X, Y)
-            task.wait(0.24)
+            task.wait(0.25)
 
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
             local hasGiftedCell = cellModel:FindFirstChild("GiftedCell")
