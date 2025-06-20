@@ -170,7 +170,7 @@ function BeeModule:startAutoJelly()
                 return self:stopAutoJelly("Cell changed while auto jelly was running.") 
             end
 
-            local jellyCount = self:doJelly(X, Y)
+            local remaining = self:doJelly(X, Y)
             task.wait(0.24)
 
             cellModel = shared.helper.Hive:getCellByXY(X, Y)
@@ -193,7 +193,7 @@ function BeeModule:startAutoJelly()
                 return self:stopAutoJelly("✅ Found target bee. | Total jelly used: " .. self.jellyCount)
             end
 
-            if jellyCount <= 0 then
+            if remaining <= 0 then
                 return self:stopAutoJelly("Out of jelly")
             end
         end
