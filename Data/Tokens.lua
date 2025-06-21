@@ -19,7 +19,6 @@ function TokenHelper:getAllToken()
         ["🫐 Neon berry"] = {id = 4483267595, isSkill = false, Priority = 85},
         ["🔷 Blue Extract"] = {id = 2495936060, isSkill = false, Priority = 80},
         ["🔴 Red Extract"] = {id = 2495935291, isSkill = false, Priority = 80},
-        ["🫙 Royal Jelly"] = {id = 1471882621, isSkill = false, Priority = 80},
         ["🎲 Dice 1"] = {id = 2863468407, isSkill = false, Priority = 80},
         ["🧻 Soft Wax"] = {id = 8277778300, isSkill = false, Priority = 80},
         ["⭐ Star"] = {id = 2000457501, isSkill = true, Priority = 80},
@@ -46,6 +45,7 @@ function TokenHelper:getAllToken()
         ["💥 Pulse"] = {id = 1874564120, isSkill = true, Priority = 63},
         ["👁️ Focus"] = {id = 1629649299, isSkill = true, Priority = 60},
         ["🫒 Bitter berry"] = {id = 4483236276, isSkill = false, Priority = 60},
+       
 
         -- TIER 5: UTILITY ITEMS (Priority 50-55)
         ["🔶 bbm1"] = {id = 2652364563, isSkill = true, Priority = 55},
@@ -75,6 +75,7 @@ function TokenHelper:getAllToken()
         ["🌻 Sunflowerseed"] = {id = 1952682401, isSkill = false, Priority = 25},
         ["🍍 Pineapple"] = {id = 1952796032, isSkill = false, Priority = 25},
         ["🍓 Strawberry"] = {id = 1952740625, isSkill = false, Priority = 25},
+        ["🫙 Royal Jelly"] = {id = 1471882621, isSkill = false, Priority = 25},
         
         -- TIER 9: LOW PRIORITY (Priority 10-15)
         ["🍯 Honey"] = {id = 1472135114, isSkill = false, Priority = 10},

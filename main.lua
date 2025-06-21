@@ -7,7 +7,9 @@ else
     _G.URL = "NewBeeV2"
     shared.ModuleLoader = loadstring(readfile(_G.URL..'/Helpers/ModuleLoader.lua'))()
 end
--- 
+if not _G.isGithub then
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
+end
 
 local GUIHelperModule = shared.ModuleLoader:load(_G.URL.."/Class/GUI.lua")
 local PlayerModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Player.lua")
@@ -135,6 +137,3 @@ shared.main.Hive = shared.helper.Hive:initHive()
 
 
 
-if not _G.isGithub then
-    loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
-end

@@ -398,8 +398,10 @@ function TaskManager:hasSprout()
             end
         end
     end
-
-    return bestSprout or false
+    if not bestSprout then
+        return nil, 0
+    end
+    return bestSprout, highestAmount
 end
 function TaskManager:doSprout(sprout, field)
     local player = self.bot.plr
@@ -495,8 +497,8 @@ function TaskManager:doFarming()
         self.placedCount = 0
     end
 
-    local Sprout = self:hasSprout()
-    if Sprout and shared.main.Farm.autoFarmSprout then
+    local Sprout, SproutHealth  = self:hasSprout()
+    if Sprout and shared.main.Farm.autoFarmSprout and SproutHealth > 0 then
         local sproutPos = Sprout.Position
         local field = shared.helper.Field:getFieldByPosition(sproutPos)
        if field then return self:doSprout(Sprout, field) end
