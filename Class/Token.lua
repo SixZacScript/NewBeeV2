@@ -4,6 +4,7 @@ local Rep = game:GetService("ReplicatedStorage")
 local Events = Rep.Events
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local CollectiblesDisplayFolder = Instance.new("Folder")
 CollectiblesDisplayFolder.Name = "ActiveCollectiblesDisplay"
@@ -55,9 +56,6 @@ local CONFIG = {
         PRIORITY_WEIGHTS = {
             distance = 2.0,
             priority = 1.5,
-            age = 0.5,
-            accessibility = 3.0,
-            clustering = 1.5,
         },
     },
     
@@ -115,19 +113,26 @@ end
 function Token:_setupTouchHandler()
     if not self.instance then return end
     
-    local connection = self.instance.Touched:Connect(function()
-        self:_onTouched()
+    local connection = self.instance.Touched:Connect(function(hit)
+        self:_onTouched(hit)
     end)
     
     table.insert(self._connections, connection)
 end
 
-function Token:_onTouched()
+function Token:_onTouched(hit)
+    local character = hit and hit.Parent
     if self.selectionBox then
         self.selectionBox.Color3 = CONFIG.COLORS.RED
         self.selectionBox.SurfaceColor3 = CONFIG.COLORS.RED
     end
-    
+    if character then
+        local player = Players:GetPlayerFromCharacter(character)
+        if player then
+            self.touchedBy = player.UserId
+            self.touched = true
+        end
+    end
     self.touched = true
     
     if not self._cleanupScheduled then
@@ -289,7 +294,7 @@ function TokenHelper:_performPeriodicCleanup()
 end
 
 function TokenHelper:createSimPart(position, color, name)
-    local isBubble = name == "Bubble"
+    local isBubble = name == "🫧Bubble"
     local simToken = Instance.new("Part")
     simToken.Size = isBubble and CONFIG.BUBBLE.SIZE or CONFIG.TOKEN.defaultSIZE
     simToken.Position = position
@@ -337,8 +342,8 @@ function TokenHelper:_handleBubbleSpawn(data)
 
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
-    local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "Bubble")
-    local gameToken = Token.new(serverID, "Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
+    local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "🫧Bubble")
+    local gameToken = Token.new(serverID, "🫧Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
 
     for index, fieldPart in pairs(allFieldParts) do
         local isInBound = self:isPositionInBounds(position, fieldPart)
@@ -354,14 +359,13 @@ function TokenHelper:_handleBubbleSpawn(data)
         self:removeToken(serverID)
     end)
     
-    if CONFIG.DEBUG.LOG_TOKEN_EVENTS then
-        print(string.format("[TokenHelper] Spawned bubble %s at %s", tostring(serverID), tostring(position)))
-    end
 end
 
 function TokenHelper:_handleBubblePop(data)
     local serverID = data.ID
     if self.activeTokens[serverID] then
+        local tokenData =  self.activeTokens[serverID]
+        self:_updateCollectedStats(tokenData)
         self:removeToken(serverID)
     end
 end
@@ -482,20 +486,11 @@ function TokenHelper:isPositionInBounds(position, field)
 end
 
 function TokenHelper:_updateCollectedStats(token)
-    local tokenID = token.id
+    local localPlayer = Players.LocalPlayer
     local tokenName = token.name
-    
-    local stats = self.collectedTokenData[tokenID] or {
-        token_id = tokenID,
-        token_name = tokenName,
-        total = 0,
-        last_collected_at = nil,
-    }
-    
-    stats.total = stats.total + 1
-    stats.last_collected_at = os.time()
-    self.collectedTokenData[tokenID] = stats
-    
+    if token.touchedBy == localPlayer.UserId then
+        shared.Statistics:incrementToken(tokenName, 1)
+    end
 end
 function TokenHelper:getBestTokenByField(targetField, option)
     if not self.player:isValid() or not self.player.rootPart or not targetField then 
@@ -503,20 +498,21 @@ function TokenHelper:getBestTokenByField(targetField, option)
     end
     option = option or {}
     local ignoreSkill = option.ignoreSkill or false
+    local ignoreHoneyToken = shared.main.ignoreHoneyToken or false
     local playerRoot = self.player.rootPart
     local bestToken = nil
     local bestValue = math.huge
     local availableTokens = {}
-    local targetTokenId = 1629547638 -- The token ID you want to prioritize/skip
+    local targetTokenId = 1629547638
     local targetToken = nil
     
-    -- First pass: collect all collectable tokens in the specified field
+
     for _, tokenData in pairs(self.activeTokens) do
         if tokenData and tokenData.instance and not tokenData.touched and tokenData.tokenField == targetField then
-            if tokenData.isSkill and ignoreSkill then continue end
-            if shared.main.ignoreHoneyToken and tokenData.id == 1472135114 then
-               continue
+            if (tokenData.isSkill and ignoreSkill) or (ignoreHoneyToken and tokenData.id == 1472135114) then 
+                continue
             end
+
             table.insert(availableTokens, tokenData)
             if tokenData.id == targetTokenId then
                 targetToken = tokenData
@@ -609,7 +605,7 @@ function TokenHelper:isTokenCollectable(tokenData)
         return false
     end
 
-    if not shared.main.autoFarmBubble and tokenData.name == "Bubble" then
+    if not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble" then
         return false
     end
     
@@ -624,17 +620,9 @@ function TokenHelper:calculateSmartTokenScore(tokenData, playerRoot)
     
     local distance = (tokenData.position - playerRoot.Position).Magnitude
     local priority = tokenData.priority or 1
-    local age = tick() - tokenData.spawnTime
-    local isSkill = tokenData.isSkill or false
-    
     local score = (distance * weights.distance)
     score = score - (priority * weights.priority)
-    score = score - (age * weights.age)
-    
-    if isSkill then
-        score = score - CONFIG.SCORING.SMART_GET_NEAR_SKILL_TOKEN_BOOST
-    end
-    
+
     return score
 end
 
@@ -652,23 +640,6 @@ function TokenHelper:getActiveTokenCount()
     return count
 end
 
-function TokenHelper:getConfig()
-    return CONFIG
-end
-
-function TokenHelper:updateConfig(newConfig)
-    self:_mergeConfig(CONFIG, newConfig)
-    
-    -- Save updated config
-    local success, err = pcall(function()
-        local json = HttpService:JSONEncode(CONFIG)
-        writefile(CONFIG.FILES.CONFIG_FILE, json)
-    end)
-    
-    if not success and CONFIG.DEBUG.ENABLED then
-        warn("[TokenHelper] Failed to save config:", err)
-    end
-end
 
 function TokenHelper:destroy()
     -- Disconnect update connection

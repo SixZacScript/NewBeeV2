@@ -490,8 +490,6 @@ function TaskManager:doFarming()
     if not player then return false end
 
     local currentField = self.bot.currentField
-    local randomPosition = shared.helper.Field:getRandomFieldPosition(currentField)
-
     if self.placedField ~= currentField then
         self.placedField = nil
         self.placedCount = 0
@@ -505,7 +503,6 @@ function TaskManager:doFarming()
     end
 
     if not player:isPlayerInField(currentField) then
-        self.bot.token = nil
         self:returnToField({ Position = currentField.Position, Player = player })
     end
 
@@ -514,18 +511,29 @@ function TaskManager:doFarming()
         self:placeSprinklersByPosition(currentField, sprinklerData)
     end
 
-    self.bot:moveTo(randomPosition, {
-        timeout = 3,
-        onBreak = function(triggerBrake)
-            local tokenCheckConnection
-            tokenCheckConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if self.bot.token or self.bot:shouldAvoidMonster() then
-                    if tokenCheckConnection then tokenCheckConnection:Disconnect() end
-                    triggerBrake()
-                end
-            end)
+
+    local runService = game:GetService("RunService")
+    local tokenHelper = self.bot.tokenHelper
+    local fieldHelper =  shared.helper.Field
+    local bot = self.bot
+    
+    while true do
+        if bot.currentField ~= currentField then
+            break
         end
-    })
+        if not bot.isStart or bot:shouldConvert() or bot:shouldAvoidMonster() or bot:shouldUseWealthClock() then
+            break
+        end
+
+        local token = tokenHelper:getBestTokenByField(currentField)
+        local targetPosition = (token and not token.touched) and token.position or fieldHelper:getRandomFieldPosition(currentField)
+
+        bot:moveTo(targetPosition, {
+            timeout = 3,
+            onBreak = self:createTokenBreakHandler(currentField, token, runService, tokenHelper)
+        })
+        task.wait()
+    end
 
     return true
 end

@@ -11,14 +11,18 @@ if not _G.isGithub then
     loadstring(game:HttpGet('https://raw.githubusercontent.com/DarkNetworks/Infinite-Yield/main/latest.lua'))()
 end
 
+local StatisticsModule = shared.ModuleLoader:load(_G.URL.."/Data/Statistics.lua")
 local GUIHelperModule = shared.ModuleLoader:load(_G.URL.."/Class/GUI.lua")
+local GUIHelper = GUIHelperModule.new()
+shared.Statistics = StatisticsModule.new()
+
+GUIHelper:loading("Loading data...")
 local PlayerModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Player.lua")
 local MonsterModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Monster.lua")
 local FieldModule = shared.ModuleLoader:load(_G.URL.."/Helpers/Field.lua")
 local NPCsModule = shared.ModuleLoader:load(_G.URL.."/Data/NPCs.lua")
 local BeeModule = shared.ModuleLoader:load(_G.URL.."/Class/Bee.lua")
-local GUIHelper = GUIHelperModule.new()
-GUIHelper:loading("Loading data...")
+
 
 -- GUIHelper:createQuestInfo({
 --     title = "📜 No active quest",

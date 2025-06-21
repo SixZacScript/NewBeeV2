@@ -78,10 +78,10 @@ function TokenHelper:getAllToken()
         ["🫙 Royal Jelly"] = {id = 1471882621, isSkill = false, Priority = 20},
         
         -- TIER 9: LOW PRIORITY (Priority 10-15)
-        ["🍯 Honey"] = {id = 1472135114, isSkill = false, Priority = 10},
-        ["😡 Rage"] = {id = 1442700745, isSkill = true, Priority = 5},
-        ["🍬 Treat"] = {id = 2028574353, isSkill = false, Priority = 5},
-        ["⚡ Speed"] = {id = 65867881, isSkill = true, Priority = 5},
+        ["😡 Rage"] = {id = 1442700745, isSkill = true, Priority = 1},
+        ["⚡ Speed"] = {id = 65867881, isSkill = true, Priority = 1},
+        ["🍬 Treat"] = {id = 2028574353, isSkill = false, Priority = 1},
+        ["🍯 Honey"] = {id = 1472135114, isSkill = false, Priority = 1},
     }
 end
 function TokenHelper:getPriorityById(searchId)

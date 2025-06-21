@@ -27,7 +27,6 @@ Bot.States = {
     STOP = "STOP",
     FARMING = "FARMING",
     CONVERTING = "CONVERTING",
-    COLLECTING = "COLLECTING",
     AVOID_MONSTER = "AVOID_MONSTER",
     KILL_MONSTER = "KILL_MONSTER",
     -- DO_QUEST = "DO_QUEST",
@@ -42,7 +41,6 @@ Bot.StateDisplay = {
     STOP = "❌ STOPPED",
     FARMING = "🌾 Farming",
     CONVERTING = "⚗️ Converting",
-    COLLECTING = "📦 Collecting",
     AVOID_MONSTER = "👾 Avoiding monster",
     KILL_MONSTER = "👾 Killing monster",
     -- DO_QUEST = "📜 Doing quest",
@@ -58,7 +56,6 @@ local commonTransitions = {Bot.States.FARMING, Bot.States.USE_WEALTH_CLOCK, Bot.
 Bot.StateMachine = {
     [Bot.States.IDLE] = {
         Bot.States.CONVERTING,
-        Bot.States.COLLECTING,
         Bot.States.AVOID_MONSTER,
         Bot.States.KILL_MONSTER,
         -- Bot.States.DO_QUEST,
@@ -66,7 +63,6 @@ Bot.StateMachine = {
     },
     [Bot.States.FARMING] = {
         Bot.States.CONVERTING,
-        Bot.States.COLLECTING,
         Bot.States.AVOID_MONSTER,
         Bot.States.KILL_MONSTER,
         -- Bot.States.DO_QUEST,
@@ -75,19 +71,8 @@ Bot.StateMachine = {
     [Bot.States.CONVERTING] = {
         unpack(commonTransitions)
     },
-    [Bot.States.COLLECTING] = {
-        Bot.States.CONVERTING,
-        Bot.States.FARMING,
-        -- Bot.States.DO_QUEST,
-        Bot.States.AVOID_MONSTER,
-        Bot.States.USE_WEALTH_CLOCK,
-        Bot.States.AUTO_PLANTER,
-        Bot.States.IDLE,
-        Bot.States.STOP,
-    },
     [Bot.States.AVOID_MONSTER] = {
         -- Bot.States.DO_QUEST,
-        Bot.States.COLLECTING,  
         unpack(commonTransitions)
     },
     [Bot.States.KILL_MONSTER] = {
@@ -96,7 +81,6 @@ Bot.StateMachine = {
     },
     -- [Bot.States.DO_QUEST] = {
     --     Bot.States.CONVERTING,
-    --     Bot.States.COLLECTING,
     --     Bot.States.FARMING,
     --     Bot.States.AVOID_MONSTER,
     --  
@@ -160,7 +144,6 @@ function Bot.new()
     self.monsterCount = 0
     self.canUseClock = false
     self.lastTokenUpdatePos = nil
-    self.token = nil
     
     -- Timing
     self.sessionStartTime = tick()
@@ -189,7 +172,6 @@ end
 function Bot:initializeTaskHandlers()
     return {
         farming = self.handleFarmingTask,
-        collecting = self.handleCollectingTask,
         converting = self.handleConvertingTask,
         planter =  self.handlePlanter,
         avoiding_monster = self.handleAvoidMonsterTask,
@@ -209,12 +191,6 @@ function Bot:startIntervalTask()
             local now = tick()
             local currentTime = os.time()
             
-            -- Update session time every second
-            if now - self.lastTick >= Bot.Config.SESSION_UPDATE_INTERVAL then
-                self.lastTick = now
-                self:updateSessionTime()
-            end
-            
             -- Enable clock usage every hour
             if now - self.lastHourTick >= Bot.Config.CLOCK_COOLDOWN + 10 then
                 self.lastHourTick = now
@@ -223,7 +199,7 @@ function Bot:startIntervalTask()
             
             -- Check toys
             local selectedToys = shared.main.Farm.fieldBoost
-            if selectedToys then
+            if selectedToys and self.isStart then
                 local ToyTimes = self.plr.plrStats.ToyTimes
                 local needsRefresh = false
                 
@@ -281,17 +257,6 @@ function Bot:startIntervalTask()
     -- end)
 end
 
-function Bot:updateSessionTime()
-    local elapsed = tick() - self.sessionStartTime
-    local hours = math.floor(elapsed / 3600)
-    local minutes = math.floor((elapsed % 3600) / 60)
-    local seconds = math.floor(elapsed % 60)
-    local formattedTime = string.format("%02d:%02d:%02d", hours, minutes, seconds)
-    
-    if shared.Fluent and shared.Fluent.sessionTimeInfo then
-        shared.Fluent.sessionTimeInfo:SetDesc(formattedTime)
-    end
-end
 
 -- Optimized Real-time Updates
 function Bot:setupRealtime()
@@ -319,12 +284,6 @@ function Bot:setupRealtime()
             self:setState(self.States.IDLE)
         end
 
-
-        if self.plr and self.plr.rootPart then
-            local pos = self.plr.rootPart.Position
-            self.token = self.tokenHelper:getBestNearbyToken(pos)
-            self.lastTokenUpdatePos = pos
-        end
     end)
 end
 
@@ -418,14 +377,10 @@ function Bot:processTask(taskData)
 end
 
 function Bot:evaluateConditions()
-    local hasToken = self.token and self.token.instance and not self.token.touched
-    local inField = self.plr:isPlayerInField(self.currentField)
-    
     return {
         hasMonster = self.monsterCount > 0,
         canUseClock = self.canUseClock and self.currentState ~= Bot.States.USE_WEALTH_CLOCK,
         shouldConvert = self.plr:isCapacityFull() and self.isStart,
-        hasTokens = hasToken and inField and self.token.tokenField == self.currentField,
         canHarvestPlanter = self.shouldDoPlanter(),
         -- questAvailable = self:shouldDoQuest(),
         shouldKillMonster = self:shouldKillMonster(),
@@ -450,8 +405,6 @@ function Bot:checkForNewTasks()
         self:addTask({type = "planter", priority = 5})
     -- elseif conditions.questAvailable then
     --     self:addTask({type = "shouldDoQuest", priority = 6})
-    elseif conditions.hasTokens then
-        self:addTask({type = "collecting", priority = 7})
     elseif conditions.shouldKillMonster then
         self:addTask({type = "killing_monster", priority = 9})
     elseif conditions.shouldFarm then
@@ -491,35 +444,7 @@ function Bot:handleFarmingTask(taskData)
     return self.taskManager:doFarming()
 end
 
-function Bot:handleCollectingTask(taskData)
-    if not self.token or not self.token.instance then return true end
 
-    self:setState(Bot.States.COLLECTING)
-    local targetToken = self.token
-
-    local reached = self:moveTo(targetToken.position, {
-        timeout = 3,
-        speed = shared.main.WalkSpeed,
-    })
-
-    while self.isStart do
-        local currentToken = self.tokenHelper:getBestNearbyToken(self.plr.rootPart.Position)
-
-        -- ถ้า token เปลี่ยน
-        if currentToken and currentToken.instance and currentToken ~= targetToken then
-            self.token = currentToken -- ตั้งใหม่ แล้วให้ bot ไปจัดการเอง
-            break
-        end
-
-        -- ถ้าเดินถึงเป้าหมายหรือหมดเวลา
-        if reached then break end
-
-        task.wait()
-    end
-
-    self:returnToLastState()
-    return true
-end
 
 
 
@@ -629,7 +554,7 @@ function Bot:handleKillMonsterTask()
 end
 
 
--- function Bot:handleDoingQuest(taskData)
+function Bot:handleDoingQuest(taskData)
 --     local currentQuest = self.questHelper.currentQuest
 --     local currentTask = self.questHelper.currentTask
 
@@ -666,8 +591,8 @@ end
 --     -- end
     
 --     self:setState(Bot.States.IDLE)
---     return true
--- end
+    return true
+end
 
 
 function Bot:handleUseToy()
@@ -837,7 +762,7 @@ end
 
 
 -- function Bot:shouldDoQuest()
---     if self.plr:isCapacityFull() or not shared.main.autoQuest or self:shouldAvoidMonster() or self:shouldCollectTokens() then
+--     if self.plr:isCapacityFull() or not shared.main.autoQuest or self:shouldAvoidMonster()  then
 --         return false
 --     end
 
@@ -857,17 +782,8 @@ function Bot:shouldConvert()
     return self.plr:isCapacityFull() and self.isStart
 end
 
-function Bot:shouldCollectTokens()
-    if not self.token or not self.token.instance or self.token.touched then
-        return false
-    end
-    
-    local inField = self.plr:isPlayerInField(self.currentField)
-    return inField and self.token.tokenField == self.currentField
-end
-
 function Bot:shouldFarm()
-    if not self.isStart or self:shouldConvert() or self:shouldCollectTokens() then
+    if not self.isStart or self:shouldConvert()  then
         return false
     end
     
@@ -936,9 +852,6 @@ function Bot:isDoingQuest()
     return self.currentState == Bot.States.DO_QUEST 
 end
 
-function Bot:isCollecting() 
-    return self.currentState == Bot.States.COLLECTING 
-end
 
 function Bot:isSubmittingQuest() 
     return self.currentState == Bot.States.SUBMITTING_QUEST 
@@ -948,7 +861,6 @@ function Bot:isBusy()
     local busyStates = {
         [Bot.States.CONVERTING] = true,
         -- [Bot.States.DO_QUEST] = true,
-        [Bot.States.COLLECTING] = true,
     }
     return busyStates[self.currentState] or false
 end
@@ -999,7 +911,6 @@ function Bot:cleanup()
     end
     
     -- Clear references
-    self.token = nil
     self.lastTokenUpdatePos = nil
     self.taskHandlers = nil
 end

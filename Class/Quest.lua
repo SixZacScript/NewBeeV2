@@ -23,7 +23,6 @@ function QuestHelper.new()
     }
 
     -- self:_setupEventHandlers()
-    -- self:startCollectionRateUpdater()
     return self
 end
 
@@ -219,33 +218,6 @@ function QuestHelper:getNextQuest(completedQuestName)
     return result
 end
 
-function QuestHelper:startCollectionRateUpdater()
-    task.spawn(function()
-        while true do
-            task.wait(1)
-
-            local PollenStats = self.collectedStatics
-            if not PollenStats or PollenStats.startTime <= 0 then continue end
-
-            local elapsedTime = tick() - PollenStats.startTime
-            if elapsedTime <= 0 then continue end
-
-            -- Honey Stats
-            if PollenStats.totalConvertHoney > 0 and shared.Fluent and shared.Fluent.HoneyInfo then
-                local honeyPerSec = PollenStats.totalConvertHoney / elapsedTime
-                local honeyPerHour = honeyPerSec * 3600
-                local honeyPerDay = honeyPerSec * 86400
-
-                shared.Fluent.HoneyInfo:SetDesc(string.format(
-                    "Hourly: %s\nDaily: %s\nTotal: %s",
-                    shared.TokenDataModule:formatNumber(honeyPerHour, 2),
-                    shared.TokenDataModule:formatNumber(honeyPerDay, 2),
-                    shared.TokenDataModule:formatNumber(PollenStats.totalConvertHoney, 2)
-                ))
-            end
-        end
-    end)
-end
 
 function QuestHelper:onMonsterEvent(data)
     local Action = data.Action
@@ -277,15 +249,7 @@ function QuestHelper:onServerGiveEvent(eventType, data)
         local category = data.C
         local amount = data.A
         
-        -- Handle Honey conversion
-        if category == "Honey" then
-            self.collectedStatics.totalConvertHoney += amount
-            return
-        end
-
-        -- Process Pollen events for current quest only
         if category ~= "Pollen" or not self.currentQuest then return end
-
         local pollenRealAmount = data.R or amount
         if typeof(pollenRealAmount) ~= "number" then return end
         

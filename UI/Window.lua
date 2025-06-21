@@ -106,6 +106,7 @@ function FluentUI:_createTabs()
         {name = "Planter", title = "Planter", icon = "sprout"},
         {name = "Hive", title = "Hive", icon = "home"},
         {name = "Misc", title = "Miscellaneous", icon = "star"},
+        {name = "Stats", title = "Statistics", icon = "bar-chart"},
         {name = "Settings", title = "Settings", icon = "settings"}
         -- {name = "Quest", title = "Quest", icon = "book"},
         -- {name = "Combat", title = "Combat", icon = "sword"},
@@ -125,6 +126,7 @@ function FluentUI:_initializeAllTabs()
     self:_initPlanterTab()
     self:_initHiveTab()
     self:_initMiscTab()
+    self:_initStatsTab()
     self:_initSettingsTab()
     -- self:_initCombatTab()
     -- self:_initQuestTab()
@@ -176,10 +178,6 @@ function FluentUI:_initMainTab()
     
     -- Main Toggles
     self:_createMainToggles(mainTab)
-    
-    -- Statistics Section
-    local statisticsSection = mainTab:AddSection("Statistics")
-    self:_createStatistics(statisticsSection)
     
     -- Event Handlers
     self:_setupMainEventHandlers()
@@ -254,19 +252,6 @@ function FluentUI:_createMainToggles(mainTab)
 
     
 
-end
-
-function FluentUI:_createStatistics(section)
-    
-    self.HoneyInfo = section:AddParagraph({
-        Title = "🍯 Honey Production",
-        Content = "Hourly: 0\nDaily: 0\nTotal: 0"
-    })
-    
-    self.sessionTimeInfo = section:AddParagraph({
-        Title = "⏱️ Session Time",
-        Content = "00:00:00"
-    })
 end
 
 function FluentUI:_setupMainEventHandlers()
@@ -581,6 +566,27 @@ function FluentUI:_initMiscTab()
     })
 
 
+end
+function FluentUI:_initStatsTab()
+    local StatsTab = self.Tabs.Stats
+    local statisticsSection = StatsTab:AddSection("Statistics")
+
+    self.HoneyInfo = statisticsSection:AddParagraph({
+        Title = "🍯 Honey Production",
+        Content = "Hourly: 0\nDaily: 0\nTotal: 0"
+    })
+
+    self.tokenCollectedInfo = statisticsSection:AddParagraph({
+        Title = "🎯 Tokens Collected",
+        Content = "-"
+    })
+    
+    self.sessionTimeInfo = statisticsSection:AddParagraph({
+        Title = "⏱️ Session Time",
+        Content = "00:00:00"
+    })
+
+   
 end
 
 function FluentUI:_initCombatTab()
