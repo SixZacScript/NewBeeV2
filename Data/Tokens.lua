@@ -75,7 +75,7 @@ function TokenHelper:getAllToken()
         ["🌻 Sunflowerseed"] = {id = 1952682401, isSkill = false, Priority = 25},
         ["🍍 Pineapple"] = {id = 1952796032, isSkill = false, Priority = 25},
         ["🍓 Strawberry"] = {id = 1952740625, isSkill = false, Priority = 25},
-        ["🫙 Royal Jelly"] = {id = 1471882621, isSkill = false, Priority = 25},
+        ["🫙 Royal Jelly"] = {id = 1471882621, isSkill = false, Priority = 20},
         
         -- TIER 9: LOW PRIORITY (Priority 10-15)
         ["🍯 Honey"] = {id = 1472135114, isSkill = false, Priority = 10},
