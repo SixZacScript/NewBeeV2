@@ -294,7 +294,7 @@ function TokenHelper:_performPeriodicCleanup()
 end
 
 function TokenHelper:createSimPart(position, color, name)
-    local isBubble = name == "🫧Bubble"
+    local isBubble = name == "Bubble"
     local simToken = Instance.new("Part")
     simToken.Size = isBubble and CONFIG.BUBBLE.SIZE or CONFIG.TOKEN.defaultSIZE
     simToken.Position = position
@@ -342,8 +342,8 @@ function TokenHelper:_handleBubbleSpawn(data)
 
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
-    local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "🫧Bubble")
-    local gameToken = Token.new(serverID, "🫧Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
+    local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "Bubble")
+    local gameToken = Token.new(serverID, "Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
 
     for index, fieldPart in pairs(allFieldParts) do
         local isInBound = self:isPositionInBounds(position, fieldPart)
@@ -517,7 +517,7 @@ function TokenHelper:getBestTokenByField(targetField, option)
         if (ignoreHoneyToken and tokenData.id == 1472135114) then
             continue
         end
-        if (not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble") then
+        if (not shared.main.autoFarmBubble and tokenData.name == "Bubble") then
             continue
         end
 
