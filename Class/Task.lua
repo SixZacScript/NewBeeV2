@@ -385,6 +385,10 @@ function TaskManager:getSproutAmount(sprout)
 end
 
 function TaskManager:hasSprout()
+    if not shared.main.Farm.autoFarmSprout then
+        return nil, 0
+    end
+
     local SproutsFolder = workspace.Sprouts
     local bestSprout = nil
     local highestAmount = -math.huge

@@ -391,8 +391,6 @@ function TokenHelper:_handleTokenSpawn(tokenParams)
     local icon = tokenParams.Icon
     local duration = tokenParams.Dur
     
-    if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
-    
     local assetID = self:extractAssetID(icon)
     local name, tokenData = TokenDataModule:getTokenById(assetID)
 
@@ -416,7 +414,7 @@ function TokenHelper:_handleTokenSpawn(tokenParams)
     task.delay(duration, function()
         self:removeToken(serverID)
     end)
-    
+
     self.activeTokens[serverID] = gameToken
     
     if CONFIG.DEBUG.LOG_TOKEN_EVENTS then
@@ -492,6 +490,7 @@ function TokenHelper:_updateCollectedStats(token)
         shared.Statistics:incrementToken(tokenName, 1)
     end
 end
+
 function TokenHelper:getBestTokenByField(targetField, option)
     if not self.player:isValid() or not self.player.rootPart or not targetField then 
         return nil 
@@ -503,22 +502,32 @@ function TokenHelper:getBestTokenByField(targetField, option)
     local bestToken = nil
     local bestValue = math.huge
 
-    for _, tokenData in ipairs(self.activeTokens) do
-        if (tokenData.isSkill and ignoreSkill) or (ignoreHoneyToken and tokenData.id == 1472135114) then 
+    
+    for _, tokenData in pairs(self.activeTokens) do
+        if tokenData.touched or not tokenData.position or not tokenData.tokenField then
             continue
         end
-        if not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble" then
+        if tokenData.tokenField ~= targetField then
             continue
         end
-        local value =  self:calculateSmartTokenScore(tokenData, playerRoot)
-            
-        if value < bestValue then
+
+        if (tokenData.isSkill and ignoreSkill) then
+            continue
+        end
+        if (ignoreHoneyToken and tokenData.id == 1472135114) then
+            continue
+        end
+        if (not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble") then
+            continue
+        end
+
+        local value = self:calculateSmartTokenScore(tokenData, playerRoot)
+        if value and value < bestValue then
             bestValue = value
             bestToken = tokenData
         end
- 
     end
-    
+
     return bestToken
 end
 
