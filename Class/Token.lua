@@ -502,114 +502,24 @@ function TokenHelper:getBestTokenByField(targetField, option)
     local playerRoot = self.player.rootPart
     local bestToken = nil
     local bestValue = math.huge
-    local availableTokens = {}
-    local targetTokenId = 1629547638
-    local targetToken = nil
-    
 
-    for _, tokenData in pairs(self.activeTokens) do
-        if tokenData and tokenData.instance and not tokenData.touched and tokenData.tokenField == targetField then
-            if (tokenData.isSkill and ignoreSkill) or (ignoreHoneyToken and tokenData.id == 1472135114) then 
-                continue
-            end
-
-            table.insert(availableTokens, tokenData)
-            if tokenData.id == targetTokenId then
-                targetToken = tokenData
-            end
+    for _, tokenData in ipairs(self.activeTokens) do
+        if (tokenData.isSkill and ignoreSkill) or (ignoreHoneyToken and tokenData.id == 1472135114) then 
+            continue
         end
-    end
-    
-    -- If no tokens in this field, return nil
-    if #availableTokens == 0 then
-        return nil
-    end
-    
-    -- If we only have the target token and no others, skip it
-    if #availableTokens == 1 and targetToken then
-        return nil
-    end
-    
-    -- If we have the target token AND other tokens, prioritize the target token
-    if targetToken and #availableTokens > 1 then
-        return targetToken
-    end
-    
-    -- Otherwise, find the best token from available tokens (excluding target token)
-    for _, tokenData in ipairs(availableTokens) do
-        if tokenData.id ~= targetTokenId then -- Skip target token in normal selection
-            local value = self.useSimpleDistanceLogic 
-                and (tokenData.position - playerRoot.Position).Magnitude
-                or self:calculateSmartTokenScore(tokenData, playerRoot)
-                
-            if value < bestValue then
-                bestValue = value
-                bestToken = tokenData
-            end
+        if not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble" then
+            continue
         end
-    end
-    
-    return bestToken
-end
-function TokenHelper:getBestNearbyToken()
-    if not self.player:isValid() or not self.player.rootPart then return nil end
-    
-    local playerRoot = self.player.rootPart
-    local bestToken = nil
-    local bestValue = math.huge
-    local availableTokens = {}
-    local targetTokenId = 1629547638 -- The token ID you want to prioritize/skip
-    local targetToken = nil
-    
-    -- First pass: collect all collectable tokens and find the target token
-    for _, tokenData in pairs(self.activeTokens) do
-        if self:isTokenCollectable(tokenData) then
-            table.insert(availableTokens, tokenData)
+        local value =  self:calculateSmartTokenScore(tokenData, playerRoot)
             
-            if tokenData.id == targetTokenId then
-                targetToken = tokenData
-            end
+        if value < bestValue then
+            bestValue = value
+            bestToken = tokenData
         end
-    end
-    
-    -- If we only have the target token and no others, skip it
-    if #availableTokens == 1 and targetToken then
-        return nil
-    end
-    
-    -- If we have the target token AND other tokens, prioritize the target token
-    if targetToken and #availableTokens > 1 then
-        return targetToken
-    end
-    
-    -- Otherwise, find the best token from available tokens (excluding target token)
-    for _, tokenData in ipairs(availableTokens) do
-        if tokenData.id ~= targetTokenId then -- Skip target token in normal selection
-            local value = self.useSimpleDistanceLogic 
-                and (tokenData.position - playerRoot.Position).Magnitude
-                or self:calculateSmartTokenScore(tokenData, playerRoot)
-                
-            if value < bestValue then
-                bestValue = value
-                bestToken = tokenData
-            end
-        end
+ 
     end
     
     return bestToken
-end
-
-function TokenHelper:isTokenCollectable(tokenData)
-    -- ingore honey token if it's enabled
-    if shared.main.ignoreHoneyToken and tokenData.id == 1472135114 then
-        return false
-    end
-
-    if not shared.main.autoFarmBubble and tokenData.name == "🫧Bubble" then
-        return false
-    end
-    
-    return tokenData and tokenData:isValid()
 end
 
 function TokenHelper:calculateSmartTokenScore(tokenData, playerRoot)

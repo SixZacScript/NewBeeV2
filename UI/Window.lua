@@ -106,6 +106,7 @@ function FluentUI:_createTabs()
         {name = "Planter", title = "Planter", icon = "sprout"},
         {name = "Hive", title = "Hive", icon = "home"},
         {name = "Misc", title = "Miscellaneous", icon = "star"},
+        {name = "Token", title = "Token Setting", icon = "coins"},
         {name = "Stats", title = "Statistics", icon = "bar-chart"},
         {name = "Settings", title = "Settings", icon = "settings"}
         -- {name = "Quest", title = "Quest", icon = "book"},
@@ -128,6 +129,7 @@ function FluentUI:_initializeAllTabs()
     self:_initMiscTab()
     self:_initStatsTab()
     self:_initSettingsTab()
+    -- self:_initTokenTab()
     -- self:_initCombatTab()
     -- self:_initQuestTab()
 end
@@ -567,6 +569,73 @@ function FluentUI:_initMiscTab()
 
 
 end
+function FluentUI:_initTokenTab()
+    local TokenTab = self.Tabs.Token
+    local tokenPrioritySection = TokenTab:AddSection("Edit Token Priority")
+
+    -- Create a sorted list of tokens by Priority DESC
+    local sortedTokens = {}
+    for name, token in pairs(shared.TokenDataModule.tokens) do
+        table.insert(sortedTokens, {Name = name, Token = token})
+    end
+    table.sort(sortedTokens, function(a, b)
+        return a.Token.Priority > b.Token.Priority
+    end)
+
+    -- Add inputs in sorted order
+    for _, entry in ipairs(sortedTokens) do
+        local name, token = entry.Name, entry.Token
+        tokenPrioritySection:AddInput("priority_" .. name, {
+            Title = name,
+            Default = token.Priority,
+            Placeholder = "Enter priority",
+            Numeric = true,
+            Finished = false,
+            Callback = function(value)
+                local num = tonumber(value)
+                if num then
+                    token.Priority = num
+                    print("Updated", name, "to priority", num)
+                else
+                    warn("Invalid number for token:", name)
+                end
+            end
+        })
+    end
+
+    -- local tokenList = tokenPrioritySection:AddDropdown("tokenList", {
+    --     Title = "Select a token to edit",
+    --     Values = shared.TokenDataModule:getAllTokenNames(),
+    --     Multi = false,
+    --     Default = 1,
+    -- })
+
+    -- local tokenPriority = tokenPrioritySection:AddInput("tokenPriority", {
+    --     Title = "Token Priority",
+    --     Default = 1,
+    --     Placeholder = "Enter a number",
+    --     Numeric = true,
+    --     Finished = false, 
+    --     Callback = function(Value)
+    --         print("Token priority input changed:", Value)
+    --     end
+    -- })
+
+    -- local saveButton = tokenPrioritySection:AddButton({
+    --     Title = "Press to Save Data",
+    --     Callback = function()
+
+    --     end
+    -- })
+
+    -- local tokenDataSection = TokenTab:AddSection("Token Data")
+    -- self.tokenInfo = tokenDataSection:AddParagraph({
+    --     Title = "Token Info",
+    --     Content = shared.TokenDataModule:getFormattedTokenList()
+    -- })
+end
+
+
 function FluentUI:_initStatsTab()
     local StatsTab = self.Tabs.Stats
     local statisticsSection = StatsTab:AddSection("Statistics")
@@ -580,7 +649,7 @@ function FluentUI:_initStatsTab()
         Title = "🎯 Tokens Collected",
         Content = "-"
     })
-    
+
     self.sessionTimeInfo = statisticsSection:AddParagraph({
         Title = "⏱️ Session Time",
         Content = "00:00:00"

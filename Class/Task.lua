@@ -433,7 +433,10 @@ function TaskManager:doSprout(sprout, field)
     -- Main sprout farming loop
     while true do
         -- Check exit conditions first
-        if self:getSproutAmount(sprout) <= 0 or not bot.isStart or not shared.main.Farm.autoFarmSprout then
+        if not bot.isStart or not shared.main.Farm.autoFarmSprout or bot:shouldAvoidMonster() then
+            return true
+        end
+        if self:getSproutAmount(sprout) <= 0 then
             break
         end
 
@@ -453,7 +456,6 @@ function TaskManager:doSprout(sprout, field)
     -- Optimized cleanup collection
     self:performCleanupCollection(field, tokenHelper, bot)
     
-    print("done sprout")
     return true
 end
 
@@ -521,7 +523,7 @@ function TaskManager:doFarming()
         if bot.currentField ~= currentField then
             break
         end
-        if not bot.isStart or bot:shouldConvert() or bot:shouldAvoidMonster() or bot:shouldUseWealthClock() then
+        if not bot.isStart or bot:shouldConvert() or bot:shouldAvoidMonster() or bot:shouldUseWealthClock() or  self:hasSprout() then
             break
         end
 
