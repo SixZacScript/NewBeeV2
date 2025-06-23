@@ -527,7 +527,7 @@ function TaskManager:doFarming()
         if bot.currentField ~= currentField then
             break
         end
-        if not bot.isStart or bot:shouldConvert() or bot:shouldAvoidMonster() or bot:shouldUseWealthClock() or  bot:hasSprout() or bot:shouldDoPlanter() then
+        if not bot.isStart or bot:shouldConvert() or bot:shouldAvoidMonster() or bot:shouldUseWealthClock() or  self:hasSprout() or bot:shouldDoPlanter() then
             break
         end
 
