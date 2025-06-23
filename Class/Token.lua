@@ -343,7 +343,7 @@ function TokenHelper:_handleBubbleSpawn(data)
     if self:getActiveTokenCount() >= CONFIG.PERFORMANCE.MAX_ACTIVE_TOKENS then return end
     
     local simPart = self:createSimPart(position, CONFIG.COLORS.BUBBLE_DEFAULT, "Bubble")
-    local gameToken = Token.new(serverID, "Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, false, position)
+    local gameToken = Token.new(serverID, "Bubble", simPart, CONFIG.BUBBLE.NORMAL_PRIORITY, true, position)
 
     for index, fieldPart in pairs(allFieldParts) do
         local isInBound = self:isPositionInBounds(position, fieldPart)

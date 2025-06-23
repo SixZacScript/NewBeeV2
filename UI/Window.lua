@@ -282,7 +282,22 @@ function FluentUI:_setupMainEventHandlers()
 end
 
 function FluentUI:_startAutoDigLoop()
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    local GuiService = game:GetService("GuiService")
     task.spawn(function()
+       
+        -- while shared.main.autoDig do
+
+        --     if not shared.helper.Player:isCapacityFull() and (shared.Bot and shared.Bot.isStart) then
+        --         local screenSize = GuiService:GetScreenResolution()
+        --         local y = screenSize.Y
+
+        --         VirtualInputManager:SendMouseButtonEvent(0, y, 0, true, game, 1)
+        --         VirtualInputManager:SendMouseButtonEvent(0, y, 0, false, game, 1)
+        --     end
+        --     task.wait(.25)
+        -- end
+
         while shared.main.autoDig do
             if not shared.helper.Player:isCapacityFull() then
                 local Event = SERVICES.ReplicatedStorage.Events.ToolCollect
