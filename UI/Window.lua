@@ -543,10 +543,6 @@ function FluentUI:_initHiveTab()
     -- Auto Jelly Section
     local autoJellySection = hiveTab:AddSection("Auto jelly")
     self:_createAutoJellyControls(autoJellySection)
-    
-    -- Bee Tools Section
-    local beeToolsSection = hiveTab:AddSection("Bee Tools")
-    self:_createBeeToolsControls(beeToolsSection)
 end
 
 function FluentUI:_initMiscTab()
@@ -848,58 +844,6 @@ function FluentUI:_createJellyStartButton(section)
     })
 end
 
-function FluentUI:_createBeeToolsControls(section)
-    -- Selected Bee Info
-    self.selectedBeeInfo = section:AddParagraph({
-        Title = "Selected Bee",
-        Content = "-"
-    })
-    
-    -- Feed Amount Input
-    section:AddInput("feedAmount", {
-        Title = "Amount to Feed",
-        Default = "1",
-        Placeholder = "Enter amount",
-        Numeric = true,
-        Finished = false,
-        Callback = function(Value)
-            shared.main.BeeTab.amount = tonumber(Value)
-        end
-    })
-    
-    -- Food Type Dropdown
-    local foodType = section:AddDropdown("foodType", {
-        Title = "Select Food Type",
-        Values = FOOD_TYPES,
-        Multi = false,
-        Default = 1,
-    })
-    
-    foodType:OnChanged(function(Value)
-        shared.main.BeeTab.foodType = Value
-    end)
-    
-    -- Feed Buttons
-    self:_createFeedButtons(section)
-end
-
-function FluentUI:_createFeedButtons(section)
-    section:AddButton({
-        Title = "Feed Bee",
-        Description = "Click to feed the selected bee",
-        Callback = function()
-            shared.helper.Bee:feedBee()
-        end
-    })
-    
-    section:AddButton({
-        Title = "🍪 Feed treat to Lowest Level Bee",
-        Description = "Click to feed the lowest level bee",
-        Callback = function()
-            self:_handleFeedLowestLevelBee()
-        end
-    })
-end
 
 function FluentUI:_handleFeedLowestLevelBee()
     local beeHelper = shared.helper.Bee
