@@ -105,8 +105,8 @@ shared.main = {
         currentBee = nil
     },
     autoJelly = {
-        X = 1,
-        Y = 1,
+        X = 0,
+        Y = 0,
         selectedTypes = {},
         selectedBees = {},
         anyGifted = false,

@@ -1,4 +1,5 @@
 local HttpService = game:GetService('HttpService')
+local HiveGuiModule =  shared.ModuleLoader:load(_G.URL.."/Class/Hive-Gui.lua")
 local SERVICES = {
     HttpService = game:GetService('HttpService'),
     Workspace = game:GetService('Workspace'),
@@ -106,9 +107,9 @@ function FluentUI:_createTabs()
         {name = "Planter", title = "Planter", icon = "sprout"},
         {name = "Hive", title = "Hive", icon = "home"},
         {name = "Misc", title = "Miscellaneous", icon = "star"},
-        {name = "Token", title = "Token Setting", icon = "coins"},
         {name = "Stats", title = "Statistics", icon = "bar-chart"},
         {name = "Settings", title = "Settings", icon = "settings"}
+        -- {name = "Token", title = "Token Setting", icon = "coins"},
         -- {name = "Quest", title = "Quest", icon = "book"},
         -- {name = "Combat", title = "Combat", icon = "sword"},
     }
@@ -547,6 +548,7 @@ function FluentUI:_initHiveTab()
     local beeToolsSection = hiveTab:AddSection("Bee Tools")
     self:_createBeeToolsControls(beeToolsSection)
 end
+
 function FluentUI:_initMiscTab()
     local MiscTab = self.Tabs.Misc
     
@@ -584,6 +586,7 @@ function FluentUI:_initMiscTab()
 
 
 end
+
 function FluentUI:_initTokenTab()
     local TokenTab = self.Tabs.Token
     local tokenPrioritySection = TokenTab:AddSection("Edit Token Priority")
@@ -761,10 +764,43 @@ function FluentUI:_createAutoJellyControls(section)
     jellySelectedRare:OnChanged(function(types)
         shared.main.autoJelly.selectedTypes = encodeSelection(types)
     end)
-    
-    -- Position Inputs
-    self:_createPositionInputs(section, "jelly")
-    
+    self.openBeeSlot = section:AddButton({
+        Title = "Select Bee Slot",
+        Description = "Selected Bee Slot: (" ..  1 .. ", " .. 1 .. ")",
+        Callback = function()
+            local Bees = shared.helper.Hive:getAllBees()
+            if self.hiveGUI then 
+                self.hiveGUI:DestroyGui()
+                self.hiveGUI = nil
+                return
+            end
+
+
+            self.hiveGUI = HiveGuiModule:new()
+
+            for _, beeData in pairs(Bees) do
+                local x, y = beeData.X, beeData.Y
+                local isSelected = shared.main.autoJelly.X == x and shared.main.autoJelly.Y == y
+                if x and y then
+                    self.hiveGUI:createGrid(x, y, beeData, isSelected)
+                end
+            end
+
+            self.hiveGUI:finalizeGrid()
+
+            self.hiveGUI.OnGridClick = function(x, y)
+                shared.main.autoJelly.X = x
+                shared.main.autoJelly.Y = y
+                self.openBeeSlot:SetDesc("Selected Bee Slot: (" .. x .. ", " .. y .. ")")
+                if self.hiveGUI then 
+                    self.hiveGUI:DestroyGui()
+                    self.hiveGUI = nil
+                end
+            end
+
+        end
+    })
+
     -- Any Gifted Toggle
     self.jellyAnyGifted = section:AddToggle("jellyAnyGifted", {
         Title = "Stop at Any Gifted Bee",
@@ -796,40 +832,6 @@ function FluentUI:_createAutoJellyControls(section)
     self:_createJellyStartButton(section)
 end
 
-function FluentUI:_createPositionInputs(section, prefix)
-    section:AddInput(prefix .. "RowPos", {
-        Title = "Hive Row (X)",
-        Default = "1",
-        Placeholder = "Enter hive row (X)",
-        Numeric = true,
-        Finished = false,
-        Callback = function(X)
-            if prefix == "jelly" then
-                shared.main.autoJelly.X = X
-            else
-                shared.main.BeeTab.row = X or 1
-                shared.helper.Bee:setCurrentBee()
-            end
-        end
-    })
-    
-    section:AddInput(prefix .. "ColumnPos", {
-        Title = "Hive Column (Y)",
-        Default = "1",
-        Placeholder = "Enter hive column (Y)",
-        Numeric = true,
-        Finished = false,
-        Callback = function(Y)
-            if prefix == "jelly" then
-                shared.main.autoJelly.Y = Y
-            else
-                shared.main.BeeTab.column = Y or 1
-                shared.helper.Bee:setCurrentBee()
-            end
-        end
-    })
-end
-
 function FluentUI:_createJellyStartButton(section)
     self.jellyStartButton = section:AddButton({
         Title = "Start",
@@ -838,6 +840,7 @@ function FluentUI:_createJellyStartButton(section)
                 self.BeesModule:stopAutoJelly()
                 self.jellyStartButton:SetTitle("Start")
             else
+                if self.hiveGUI then self.hiveGUI:DestroyGui() self.hiveGUI = nil end
                 self.BeesModule:startAutoJelly()
                 self.jellyStartButton:SetTitle("Stop")
             end
@@ -851,9 +854,6 @@ function FluentUI:_createBeeToolsControls(section)
         Title = "Selected Bee",
         Content = "-"
     })
-    
-    -- Position Inputs
-    self:_createPositionInputs(section, "")
     
     -- Feed Amount Input
     section:AddInput("feedAmount", {

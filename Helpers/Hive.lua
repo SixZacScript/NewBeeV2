@@ -230,41 +230,45 @@ function HiveHelper:getAllBees()
     if not self.CellsFolder then return {} end
 
     for _, bee in pairs(self.CellsFolder:GetChildren()) do
-        local cellType = bee:FindFirstChild('CellType')
-        local levelPart = bee:FindFirstChild('LevelPart')
-        
-        -- Early exit if required components are missing
-        if not (cellType and levelPart) then
+   
+        local cellType = bee:FindFirstChild("CellType")
+        if not cellType or cellType.Value == "Empty" then
             continue
         end
-        
-        local surfaceGui = levelPart:FindFirstChild("SurfaceGui")
-        if not surfaceGui then
-            continue
+
+        local beeLevel = 0
+
+        local levelPart = bee:FindFirstChild("LevelPart")
+        if levelPart then
+            local surfaceGui = levelPart:FindFirstChild("SurfaceGui")
+            if surfaceGui then
+                local textLabel = surfaceGui:FindFirstChild("TextLabel")
+                if textLabel and tonumber(textLabel.Text) then
+                    beeLevel = tonumber(textLabel.Text)
+                end
+            end
         end
-        
-        local textLabel = surfaceGui:FindFirstChild("TextLabel")
-        if not textLabel then
-            continue
-        end
-        
-        -- Cache all child lookups
-        local cellID = bee:FindFirstChild('CellID')
-        local cellX = bee:FindFirstChild('CellX')
-        local cellY = bee:FindFirstChild('CellY')
-        
+
+        local Faceplate = bee:FindFirstChild("Faceplate")
+        local FaceplateDecal = Faceplate and Faceplate:FindFirstChild("Decal")
+        local cellID = bee:FindFirstChild("CellID")
+        local cellX = bee:FindFirstChild("CellX")
+        local cellY = bee:FindFirstChild("CellY")
+        local GiftedCell = bee:FindFirstChild("GiftedCell")
+
         bees[bee] = {
-            level = textLabel.Text,
+            level = beeLevel,
             type = cellType.Value,
-            CellID = cellID and cellID.Value,
-            X = cellX and cellX.Value,
-            Y = cellY and cellY.Value,
+            CellID = cellID and cellID.Value or nil,
+            X = cellX and cellX.Value or nil,
+            Y = cellY and cellY.Value or nil,
+            isGifted = GiftedCell and true or false,
+            Decal = FaceplateDecal,
         }
     end
-    
+
     return bees
 end
-
 function HiveHelper:getLowestLevelBee()
     local bees = self:getAllBees()
     local lowestBee = nil
