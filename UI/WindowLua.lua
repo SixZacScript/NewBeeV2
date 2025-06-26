@@ -1,28 +1,5 @@
 local HttpService = game:GetService("HttpService")
-
-local function safePrintTable(tbl, indent, seen)
-    indent = indent or 0
-    seen = seen or {}
-
-    if seen[tbl] then
-        print(string.rep("  ", indent) .. "*Cyclic Reference*")
-        return
-    end
-
-    seen[tbl] = true
-
-    for k, v in pairs(tbl) do
-        local key = tostring(k)
-        if type(v) == "table" then
-            print(string.rep("  ", indent) .. key .. " = {")
-            safePrintTable(v, indent + 1, seen)
-            print(string.rep("  ", indent) .. "}")
-        else
-            print(string.rep("  ", indent) .. key .. " = " .. tostring(v))
-        end
-    end
-end
-
+local UIS = game:GetService("UserInputService")
 
 local a, b = {
     {
@@ -1532,6 +1509,13 @@ local aa = {
             function v.Minimize(M)
                 v.Minimized = not v.Minimized
                 v.Root.Visible = not v.Minimized
+                if shared.lastestDropdown and v.Root.Visible == false then
+                    shared.lastestDropdown:Close()
+                    shared.lastestDropdown = nil
+                end
+                if shared.onMinimize then
+                    shared.onMinimize(not v.Minimized)
+                end
                 if not C then
                     C = true
                     local N = u.MinimizeKeybind and u.MinimizeKeybind.Value or
@@ -2204,7 +2188,7 @@ local aa = {
                     ThemeTag = {Color = 'InElementBorder'}
                 }), o, n
             }), e('UIListLayout', {Padding = UDim.new(0, 3)})
-            local t = e('ScrollingFrame', {
+            local dropdownScrollingFrame = e('ScrollingFrame', {
                 Size = UDim2.new(1, -5, 1, -10),
                 Position = UDim2.fromOffset(5, 5),
                 BackgroundTransparency = 1,
@@ -2213,15 +2197,23 @@ local aa = {
                 TopImage = 'rbxassetid://6276641225',
                 ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
                 ScrollBarImageTransparency = 0.95,
-                ScrollBarThickness = 4,
+                ScrollBarThickness = 10,
                 BorderSizePixel = 0,
-                CanvasSize = UDim2.fromScale(0, 0)
+                CanvasSize = UDim2.fromScale(0, 0),
+                ClipsDescendants = true,
+                ScrollingEnabled = false,
+
             }, {s})
+            if UIS.TouchEnabled and not UIS.KeyboardEnabled and not UIS.MouseEnabled then
+                dropdownScrollingFrame.ScrollingEnabled = false
+            else
+                dropdownScrollingFrame.ScrollingEnabled = true
+            end
             local u = e('Frame', {
                 Size = UDim2.fromScale(1, 0.6),
                 ThemeTag = {BackgroundColor3 = 'DropdownHolder'}
             }, {
-                t, e('UICorner', {CornerRadius = UDim.new(0, 7)}),
+                dropdownScrollingFrame, e('UICorner', {CornerRadius = UDim.new(0, 7)}),
                 e('UIStroke', {
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
                     ThemeTag = {Color = 'DropdownBorder'}
@@ -2260,7 +2252,7 @@ local aa = {
                     v.Size = UDim2.fromOffset(x, s.AbsoluteContentSize.Y + 10)
                 end
             end, function()
-                t.CanvasSize = UDim2.fromOffset(0, s.AbsoluteContentSize.Y)
+                dropdownScrollingFrame.CanvasSize = UDim2.fromOffset(0, s.AbsoluteContentSize.Y)
             end
             w()
             y()
@@ -2278,6 +2270,7 @@ local aa = {
             end)
             local A = h.ScrollFrame
             function l.Open(B)
+                shared.lastestDropdown = l
                 l.Opened = true
                 A.ScrollingEnabled = false
                 v.Visible = true
@@ -2318,13 +2311,13 @@ local aa = {
             end
             function l.BuildDropdownList(B)
                 local C, D = l.Values, {}
-                for E, F in next, t:GetChildren() do
+                for E, F in next, dropdownScrollingFrame:GetChildren() do
                     if not F:IsA 'UIListLayout' then
                         F:Destroy()
                     end
                 end
                 local G = 0
-                for H, I in next, C do
+                for index, item in next, C do
                     local J = {}
                     G = G + 1
                     local K, L = e('Frame', {
@@ -2336,7 +2329,7 @@ local aa = {
                     }, {e('UICorner', {CornerRadius = UDim.new(0, 2)})}),
                                  e('TextLabel', {
                         FontFace = Font.new 'rbxasset://fonts/families/GothamSSm.json',
-                        Text = I,
+                        Text = item,
                         TextColor3 = Color3.fromRGB(200, 200, 200),
                         TextSize = 13,
                         TextXAlignment = Enum.TextXAlignment.Left,
@@ -2353,13 +2346,13 @@ local aa = {
                         BackgroundTransparency = 1,
                         ZIndex = 23,
                         Text = '',
-                        Parent = t,
+                        Parent = dropdownScrollingFrame,
                         ThemeTag = {BackgroundColor3 = 'DropdownOption'}
                     }, {K, L, e('UICorner', {CornerRadius = UDim.new(0, 6)})}))
                     if j.Multi then
-                        N = l.Value[I]
+                        N = l.Value[item]
                     else
-                        N = l.Value == I
+                        N = l.Value == item
                     end
                     local O, P = c.SpringMotor(1, M, 'BackgroundTransparency')
                     local Q, R = c.SpringMotor(1, K, 'BackgroundTransparency')
@@ -2375,10 +2368,7 @@ local aa = {
                         P(N and 0.89 or 1)
                     end)
                     c.AddSignal(M.MouseButton1Down, function()
-                        -- On Option Clicked
-                        if not j.Multi then 
-                            l.Close()
-                        end
+
                         P(0.92)
                     end)
                     c.AddSignal(M.MouseButton1Up,
@@ -2387,10 +2377,10 @@ local aa = {
                     end)
                     function J.UpdateButton(T)
                         if j.Multi then
-                            N = l.Value[I]
+                            N = l.Value[item]
                             if N then P(0.89) end
                         else
-                            N = l.Value == I
+                            N = l.Value == item
                             P(N and 0.89 or 1)
                         end
                         S:setGoal(d.Spring.new(N and 14 or 6, {frequency = 6}))
@@ -2405,10 +2395,10 @@ local aa = {
                             else
                                 if j.Multi then
                                     N = U
-                                    l.Value[I] = N and true or nil
+                                    l.Value[item] = N and true or nil
                                 else
                                     N = U
-                                    l.Value = N and I or nil
+                                    l.Value = N and item or nil
                                     for V, W in next, D do
                                         W:UpdateButton()
                                     end
