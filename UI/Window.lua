@@ -94,7 +94,7 @@ function FluentUI:_setupWindow()
     local height = math.clamp(viewportSize.Y * 0.6, 300, 500)
 
     self.Window = self.Fluent:CreateWindow({
-        Title = DEFAULT_CONFIG.Title .. " | ",
+        Title = DEFAULT_CONFIG.Title .. " | updated",
         SubTitle = DEFAULT_CONFIG.SubTitle,
         TabWidth = DEFAULT_CONFIG.TabWidth,
         Size = UDim2.fromOffset(width, height),
