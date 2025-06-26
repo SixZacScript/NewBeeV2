@@ -97,6 +97,7 @@ function FluentUI:_setupWindow()
         width = math.clamp(viewportSize.X * 0.9, 300, 500)
         height = math.clamp(viewportSize.Y * 0.5, 300, 400)
         tabWidth = 100
+        self:createFloatingButton()
     else
         width = math.clamp(viewportSize.X * 0.6, 300, 600)
         height = math.clamp(viewportSize.Y * 0.6, 300, 500)
@@ -1030,7 +1031,64 @@ function FluentUI:destroy()
     self.Fluent = nil
     self.Tabs = nil
 end
+function FluentUI:createFloatingButton()
+    local button = Instance.new("TextButton")
+    button.Name = "FloatingButton"
+    button.Size = UDim2.fromOffset(80, 50)
+    button.Position = UDim2.new(1, -20, 0, 20)
+    button.AnchorPoint = Vector2.new(1, 0)
 
+    
+    -- Background styling
+    button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    button.AutoButtonColor = false
+    button.Text = "Open UI"
+    button.TextColor3 = Color3.fromRGB(230, 230, 230)
+    button.Font = Enum.Font.GothamSemibold
+    button.TextScaled = true
+    button.ZIndex = 999
+
+    -- Rounded corners
+    local uicorner = Instance.new("UICorner", button)
+    uicorner.CornerRadius = UDim.new(0, 12)
+
+    -- Hover effect
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    end)
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end)
+
+    button.Parent = game.Players.LocalPlayer.PlayerGui:FindFirstChild("ScreenGui")
+
+    local dragging = false
+    local dragStart, startPos
+
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    button.MouseButton1Click:Connect(function()
+        self.Window:Minimize()
+    end)
+end
 
 
 return FluentUI
