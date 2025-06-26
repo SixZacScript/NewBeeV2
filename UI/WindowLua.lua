@@ -2204,11 +2204,6 @@ local aa = {
                 ScrollingEnabled = false,
 
             }, {s})
-            if UIS.TouchEnabled and not UIS.KeyboardEnabled and not UIS.MouseEnabled then
-                dropdownScrollingFrame.ScrollingEnabled = false
-            else
-                dropdownScrollingFrame.ScrollingEnabled = true
-            end
             local u = e('Frame', {
                 Size = UDim2.fromScale(1, 0.6),
                 ThemeTag = {BackgroundColor3 = 'DropdownHolder'}
