@@ -2200,8 +2200,7 @@ local aa = {
                 ScrollBarThickness = 10,
                 BorderSizePixel = 0,
                 CanvasSize = UDim2.fromScale(0, 0),
-                ClipsDescendants = true,
-                ScrollingEnabled = false,
+                ScrollingEnabled = true,
 
             }, {s})
             local u = e('Frame', {

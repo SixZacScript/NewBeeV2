@@ -1,4 +1,4 @@
-local HttpService = game:GetService('HttpService')
+local UserInputService = game:GetService('UserInputService')
 local HiveGuiModule =  shared.ModuleLoader:load(_G.URL.."/Class/Hive-Gui.lua")
 local SERVICES = {
     HttpService = game:GetService('HttpService'),
@@ -88,15 +88,24 @@ function FluentUI:_initializeCore(deps)
 end
 
 function FluentUI:_setupWindow()
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+    local width, height, tabWidth
     local viewportSize = workspace.CurrentCamera.ViewportSize
 
-    local width = math.clamp(viewportSize.X * 0.6, 300, 600)
-    local height = math.clamp(viewportSize.Y * 0.6, 300, 500)
-
+    if isMobile then
+        width = math.clamp(viewportSize.X * 0.9, 300, 500)
+        height = math.clamp(viewportSize.Y * 0.5, 300, 400)
+        tabWidth = 100
+    else
+        width = math.clamp(viewportSize.X * 0.6, 300, 600)
+        height = math.clamp(viewportSize.Y * 0.6, 300, 500)
+        tabWidth = 160
+    end
     self.Window = self.Fluent:CreateWindow({
         Title = DEFAULT_CONFIG.Title .. " | updated",
         SubTitle = DEFAULT_CONFIG.SubTitle,
-        TabWidth = DEFAULT_CONFIG.TabWidth,
+        TabWidth = tabWidth,
         Size = UDim2.fromOffset(width, height),
         Acrylic = DEFAULT_CONFIG.Acrylic,
         Theme = DEFAULT_CONFIG.Theme,
