@@ -88,11 +88,16 @@ function FluentUI:_initializeCore(deps)
 end
 
 function FluentUI:_setupWindow()
+    local viewportSize = workspace.CurrentCamera.ViewportSize
+
+    local width = math.clamp(viewportSize.X * 0.6, 300, 600)
+    local height = math.clamp(viewportSize.Y * 0.6, 300, 500)
+
     self.Window = self.Fluent:CreateWindow({
         Title = DEFAULT_CONFIG.Title .. " | ",
         SubTitle = DEFAULT_CONFIG.SubTitle,
         TabWidth = DEFAULT_CONFIG.TabWidth,
-        Size = DEFAULT_CONFIG.Size,
+        Size = UDim2.fromOffset(width, height),
         Acrylic = DEFAULT_CONFIG.Acrylic,
         Theme = DEFAULT_CONFIG.Theme,
         MinimizeKey = DEFAULT_CONFIG.ToggleKey
