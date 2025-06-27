@@ -89,20 +89,24 @@ end
 
 function FluentUI:_setupWindow()
     local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-
-    local width, height, tabWidth
     local viewportSize = workspace.CurrentCamera.ViewportSize
 
+    local screenWidth = viewportSize.X
+    local screenHeight = viewportSize.Y
+
+    local width, height, tabWidth
+
     if isMobile then
-        width = math.clamp(viewportSize.X * 0.9, 300, 500)
-        height = math.clamp(viewportSize.Y * 0.5, 300, 400)
-        tabWidth = 100
+        width = math.clamp(screenWidth * 0.95, 280, screenWidth - 40)
+        height = math.clamp(screenHeight * 0.4, 250, screenHeight - 200)
+        tabWidth = math.clamp(screenWidth * 0.2, 80, 120)
         self:createFloatingButton()
     else
-        width = math.clamp(viewportSize.X * 0.6, 300, 600)
-        height = math.clamp(viewportSize.Y * 0.6, 300, 500)
-        tabWidth = 160
+        width = math.clamp(screenWidth * 0.5, 400, 700)
+        height = math.clamp(screenHeight * 0.6, 300, 600)
+        tabWidth = math.clamp(screenWidth * 0.08, 140, 200)
     end
+
     self.Window = self.Fluent:CreateWindow({
         Title = DEFAULT_CONFIG.Title .. " | updated",
         SubTitle = DEFAULT_CONFIG.SubTitle,
@@ -1031,15 +1035,16 @@ function FluentUI:destroy()
     self.Fluent = nil
     self.Tabs = nil
 end
+
 function FluentUI:createFloatingButton()
+    local UIS = game:GetService("UserInputService")
+    local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
     local button = Instance.new("TextButton")
     button.Name = "FloatingButton"
     button.Size = UDim2.fromOffset(80, 50)
     button.Position = UDim2.new(1, -20, 0, 20)
     button.AnchorPoint = Vector2.new(1, 0)
-
-    
-    -- Background styling
     button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     button.AutoButtonColor = false
     button.Text = "Open UI"
@@ -1048,11 +1053,9 @@ function FluentUI:createFloatingButton()
     button.TextScaled = true
     button.ZIndex = 999
 
-    -- Rounded corners
-    local uicorner = Instance.new("UICorner", button)
-    uicorner.CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 12)
 
-    -- Hover effect
+    -- Hover effect (PC only)
     button.MouseEnter:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     end)
@@ -1060,16 +1063,26 @@ function FluentUI:createFloatingButton()
         button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     end)
 
-    button.Parent = game.Players.LocalPlayer.PlayerGui:FindFirstChild("ScreenGui")
+    button.Parent = PlayerGui:WaitForChild("ScreenGui")
 
+    -- Dragging logic
     local dragging = false
     local dragStart, startPos
 
+    local function update(input)
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+
     button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = button.Position
+
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -1078,10 +1091,9 @@ function FluentUI:createFloatingButton()
         end
     end)
 
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
         end
     end)
 
